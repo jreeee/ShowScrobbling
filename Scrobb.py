@@ -8,11 +8,14 @@ import time
 import os
 
 
+update_interval = 30 # in seconds
+
 apiKey = "lastfm-api-key"
 lastfmusr = "lastfm-username"
+client_id = "discord-client-id" # pls discordddddd
 
-url_rtracks = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lastfmusr}&limit=1&api_key={apiKey}&format=json'
-update_interval = 30 # in seconds
+url_rtrack = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lastfmusr}&limit=1&api_key={apiKey}&format=json'
+
 
 
 
@@ -34,20 +37,23 @@ class Scrobbpy:
         print("...done")
 
     def __del__(self):
-        if self.rpc is not None and self.rpc_connected:
-            self.rpc.clear()
-            self.rpc.close()
+        try:
+            if self.rpc is not None and self.rpc_connected:
+                self.rpc.clear()
+                self.rpc.close()
+        except AttributeError:
+            print("rpc attribute missing")
+        print("exiting")
 
     def other_is_running(self):
         pid = os.getpid()
         return (
             "python"
-            in os.popen(f"ps aux | grep LastPY | grep -v {pid}").read()
+            in os.popen(f"ps aux | grep Scrobb.py | grep -v {pid}").read()
         )
 
-    #async 
     def update(self, debug=False):
-        data_song = urllib.request.urlopen(url_rtracks).read().decode()
+        data_song = urllib.request.urlopen(url_rtrack).read().decode()
         obj_song = json.loads(data_song)
         if debug:
             print(obj_song)
@@ -71,14 +77,14 @@ class Scrobbpy:
                 print(tck_obj)
             if (song_url != self.prev_url):
                 self.new_track = True
+                self.prev_url = song_url
                 length = tck_obj['track']['duration']
                 if length == "0":
-                    self.remaining_loops = 6
-                    print("set new timeout, guessed 6 cycles")
+                    self.remaining_loops = 7
+                    print("set new timeout, guessed 7 cycles")
 
                 else:
                     self.remaining_loops = int(length) / (update_interval * 1000) + 1
-                    self.prev_url = song_url
                     print("set new timeout")
         
             user_playcount = tck_obj['track']['userplaycount']
@@ -123,7 +129,6 @@ class Scrobbpy:
         print(f"cycles remaining: {int(self.remaining_loops)}")
 
 def main():
-    client_id = "discord-client-id" # pls discordddddd
     try:
         if a := Scrobbpy(client_id):
             while(True):
