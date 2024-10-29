@@ -7,43 +7,49 @@ import json
 import time
 import os
 
-
+# static values
 update_interval = 30 # in seconds
+log_level = 1 # 0: silent -> 3: debug
 
-apiKey = "lastfm-api-key"
-lastfmusr = "lastfm-username"
+lfm_api_key = "lastfm-api-key"
+lfm_usr = "lastfm-username"
 client_id = "discord-client-id" # pls discordddddd
 
-url_rtrack = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lastfmusr}&limit=1&api_key={apiKey}&format=json'
 
+url_recent_track = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lfm_usr}&limit=1&api_key={lfm_api_key}&format=json'
 
-
-
+def log(level, content):
+    if level <= log_level:
+        print(content)
 
 class Scrobbpy:
+    # default values
+    default_cycles = 7
+    remaining_cycles = 0
+    prev_track_url = ""
+    new_track = False
 
+    # rpc setup
     def __init__(self, client_id):
         if self.other_is_running():
-            print("Other instance already running.")
+            log(1, "Other instance already running.")
             exit(1)
-        print("Initializing RPC...")
+        log(1, "rpc init")
         self
         self.rpc = Presence(client_id)
         self.rpc.connect()
         self.rpc_connected = True
-        self.remaining_loops = 0
-        self.prev_url = ""
-        self.new_track = False
-        print("...done")
+        log(1, "init finished")
 
+    # rpc cleanup
     def __del__(self):
         try:
             if self.rpc is not None and self.rpc_connected:
                 self.rpc.clear()
                 self.rpc.close()
         except AttributeError:
-            print("rpc attribute missing")
-        print("exiting")
+            log(2, "rpc attribute missing")
+        log(1, "exiting")
 
     def other_is_running(self):
         pid = os.getpid()
@@ -52,91 +58,97 @@ class Scrobbpy:
             in os.popen(f"ps aux | grep Scrobb.py | grep -v {pid}").read()
         )
 
-    def update(self, debug=False):
-        data_song = urllib.request.urlopen(url_rtrack).read().decode()
-        obj_song = json.loads(data_song)
-        if debug:
-            print(obj_song)
-
-        song_image = obj_song['recenttracks']['track'][0]['image'][3]['#text'] # Could be none
-        song_artist = obj_song['recenttracks']['track'][0]['artist']['#text']
-        song_name = obj_song['recenttracks']['track'][0]['name']
-        song_album = obj_song['recenttracks']['track'][0]['album']['#text'] # Could be none
-        song_url = obj_song['recenttracks']['track'][0]['url']
-
-        split_url = obj_song['recenttracks']['track'][0]['url'].split("/")
-        artist = split_url[4]
-        track = split_url[6]
+    # anything with _j is a json object
+    def update(self):
+        # query lastfm for the most recent track
+        data_recent_track = urllib.request.urlopen(url_recent_track).read().decode()
+        recent_track_j = json.loads(data_recent_track)
         
-        url_track = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={apiKey}&track={track}&artist={artist}&username={lastfmusr}&format=json'
-        try:
-            data_track = urllib.request.urlopen(url_track).read().decode()
-            tck_obj = json.loads(data_track)
+        log(3, recent_track_j)
+        # get recent track info
+        track_image = recent_track_j['recenttracks']['track'][0]['image'][3]['#text'] # Could be none
+        track_artist = recent_track_j['recenttracks']['track'][0]['artist']['#text']
+        track_name = recent_track_j['recenttracks']['track'][0]['name']
+        track_album = recent_track_j['recenttracks']['track'][0]['album']['#text'] # Could be none
+        track_url = recent_track_j['recenttracks']['track'][0]['url']
 
-            if debug:
-                print(tck_obj)
-            if (song_url != self.prev_url):
-                self.new_track = True
-                self.prev_url = song_url
-                length = tck_obj['track']['duration']
+        # in case of new track
+        if (track_url != self.prev_track_url):
+            self.new_track = True
+            self.prev_track_url = track_url
+            # build url to fetch current track as standalone
+            track_url_split = recent_track_j['recenttracks']['track'][0]['url'].split("/")
+            url_artist = track_url_split[4]
+            url_track = track_url_split[6]
+            data_track_url = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={lfm_api_key}&track={url_track}&artist={url_artist}&username={lfm_usr}&format=json'
+
+            try:
+                # api call to get the track
+                data_track = urllib.request.urlopen(data_track_url).read().decode()
+                track_j = json.loads(data_track)
+
+                log(3, track_j)
+
+                length = track_j['track']['duration']
                 if length == "0":
-                    self.remaining_loops = 7
-                    print("set new timeout, guessed 7 cycles")
-
+                    self.remaining_cycles = self.default_cycles
+                    log(2, f"set default timeout")
                 else:
-                    self.remaining_loops = int(length) / (update_interval * 1000) + 1
-                    print("set new timeout")
-        
-            user_playcount = tck_obj['track']['userplaycount']
-            count = "time" 
-            if (user_playcount != 1):
-                count = "times"
-            loved_status = tck_obj['track']['userloved']
-            loves = ""
-            if (loved_status == "1"):
-                loves = " and loves it 🤍"
-            play = f"{lastfmusr} listend to this track {user_playcount} {count}{loves}"
-        except: # this somehow still breaks and idk why
-            print("track could not be found, please check")
-            play = "Error: could not fetch song data"
-            if (song_url != self.prev_url):
-                self.remaining_loops = 7
-                self.prev_url = song_url
-                self.new_track = True
-                print("set new timeout, guessed 7 cycles")
+                    self.remaining_cycles = int(length) / (update_interval * 1000) + 1
+                    log(2, "set new timeout")
 
-        # go to sleep
-        if 0 > self.remaining_loops:
+                user_playcount = track_j['track']['userplaycount']
+                print_count = "time" 
+                if (user_playcount != 1):
+                    print_count = "times"
+
+                loved_status = track_j['track']['userloved']
+                print_loves = ""
+                if (loved_status == "1"):
+                    print_loves = " and loves it 🤍"
+                print_hover = f"{lfm_usr} listend to this track {user_playcount} {print_count}{print_loves}"
+
+            except:
+                log(1, "track info could not be found, please check your scrobbler")
+                print_hover = "Error: could not fetch song data"
+                if (track_url != self.prev_track_url):
+                    self.remaining_cycles = self.default_cycles
+                    log(2, "set default timeout")
+
+        # go to sleep (return to main) if cycles are exhausted
+        if 0 > self.remaining_cycles:
             self.rpc.clear()
-            print("song probably paused, sleeping")
+            log(1, "song probably paused, sleeping")
             return
+
+        # create new track rpc 
         if self.new_track:
-            if (song_album != ""):
-                song_album = f" on {song_album}"
-            if (song_image == ""):
-                song_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
+            if (track_album != ""):
+                track_album = f" on {track_album}"
+            if (track_image == ""):
+                track_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
             self.rpc.clear()
             self.rpc.update(
-                details=f"listening to {song_name}",
-                state=f"by {song_artist}{song_album}",
-                large_image=song_image,
-                large_text= play,
-                buttons=[{"label": f"{song_name} on lastfm"[0:31], "url": song_url}, {"label": f"{lastfmusr}'s profile", "url": f"https://www.last.fm/user/{lastfmusr}"}],
+                details=f"listening to {track_name}",
+                state=f"by {track_artist}{track_album}",
+                large_image= track_image,
+                large_text= print_hover,
+                buttons=[{"label": f"{track_name} on lastfm"[0:31], "url": track_url}, {"label": f"{lfm_usr}'s profile", "url": f"https://www.last.fm/user/{lfm_usr}"}],
             )
             self.new_track = False
-            print(f"updated: {song_name}, {song_artist}, {play}")
-        self.remaining_loops = self.remaining_loops - 1
-        print(f"cycles remaining: {int(self.remaining_loops)}")
+            log(1, f"playing: {track_name}, {track_artist}, {print_hover}")
+
+        self.remaining_cycles = self.remaining_cycles - 1
+        log(2, f"cycles remaining: {int(self.remaining_cycles)}")
 
 def main():
     try:
-        if a := Scrobbpy(client_id):
+        if rpc := Scrobbpy(client_id):
             while(True):
-                a.update()
+                rpc.update()
                 time.sleep(update_interval)
     except ConnectionRefusedError:
         print("Connection refused. Is Discord running?")
-
 
 if __name__ == "__main__":
     main()
