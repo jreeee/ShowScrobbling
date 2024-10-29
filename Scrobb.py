@@ -1,4 +1,4 @@
-#! /bin/env/python
+#! /bin/env python
 
 from pypresence import Presence
 import urllib
@@ -8,10 +8,10 @@ import time
 import os
 
 
-apiKey = "yourapikey"
-lastfmusr = "yourusername"
+apiKey = "lastfm-api-key"
+lastfmusr = "lastfm-username"
 
-url_rtracks = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lastfmusr}&limit=3&api_key={apiKey}&format=json'
+url_rtracks = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lastfmusr}&limit=1&api_key={apiKey}&format=json'
 update_interval = 30 # in seconds
 
 
@@ -30,6 +30,7 @@ class Scrobbpy:
         self.rpc_connected = True
         self.remaining_loops = 0
         self.prev_url = ""
+        self.new_track = False
         print("...done")
 
     def __del__(self):
@@ -69,13 +70,14 @@ class Scrobbpy:
             if debug:
                 print(tck_obj)
             if (song_url != self.prev_url):
+                self.new_track = True
                 length = tck_obj['track']['duration']
                 if length == "0":
                     self.remaining_loops = 6
                     print("set new timeout, guessed 6 cycles")
 
                 else:
-                    self.remaining_loops = int(length) / (update_interval * 1000)
+                    self.remaining_loops = int(length) / (update_interval * 1000) + 1
                     self.prev_url = song_url
                     print("set new timeout")
         
@@ -88,41 +90,44 @@ class Scrobbpy:
             if (loved_status == "1"):
                 loves = " and loves it 🤍"
             play = f"{lastfmusr} listend to this track {user_playcount} {count}{loves}"
-        except:
+        except: # this somehow still breaks and idk why
             print("track could not be found, please check")
             play = "Error: could not fetch song data"
             if (song_url != self.prev_url):
-                self.remaining_loops = 6
+                self.remaining_loops = 7
                 self.prev_url = song_url
-                print("set new timeout, guessed 6 cycles")         
+                self.new_track = True
+                print("set new timeout, guessed 7 cycles")
 
-        self.rpc.clear()
         # go to sleep
         if 0 > self.remaining_loops:
+            self.rpc.clear()
             print("song probably paused, sleeping")
             return
-
-        if (song_album != ""):
-            song_album = f" on {song_album}"
-        if (song_image == ""):
-            song_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
-
-        self.rpc.update(
-            details=f"listening to {song_name}",
-            state=f"by {song_artist}{song_album}",
-            large_image=song_image,
-            large_text= play,
-            buttons=[{"label": f"{song_name} on lastfm"[0:31], "url": song_url}, {"label": f"{lastfmusr}'s profile", "url": f"https://www.last.fm/user/{lastfmusr}"}],
-        )
+        if self.new_track:
+            if (song_album != ""):
+                song_album = f" on {song_album}"
+            if (song_image == ""):
+                song_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
+            self.rpc.clear()
+            self.rpc.update(
+                details=f"listening to {song_name}",
+                state=f"by {song_artist}{song_album}",
+                large_image=song_image,
+                large_text= play,
+                buttons=[{"label": f"{song_name} on lastfm"[0:31], "url": song_url}, {"label": f"{lastfmusr}'s profile", "url": f"https://www.last.fm/user/{lastfmusr}"}],
+            )
+            self.new_track = False
+            print(f"updated: {song_name}, {song_artist}, {play}")
         self.remaining_loops = self.remaining_loops - 1
-        print(f"updated: {song_name}, {song_artist}, {play}, cycle {int(self.remaining_loops)}")
+        print(f"cycles remaining: {int(self.remaining_loops)}")
 
 def main():
-    client_id = "todo"
+    client_id = "discord-client-id" # pls discordddddd
     try:
         if a := Scrobbpy(client_id):
             while(True):
-                a.update(True)
+                a.update()
                 time.sleep(update_interval)
     except ConnectionRefusedError:
         print("Connection refused. Is Discord running?")
