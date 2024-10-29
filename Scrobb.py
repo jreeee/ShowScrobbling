@@ -8,13 +8,18 @@ import time
 import os
 
 # static values
-update_interval = 30 # in seconds
+
 log_level = 1 # 0: silent -> 3: debug
+# default track length: update_interval * default_cycles
+update_interval = 30 # in seconds - don't set it too low
+default_cycles = 7 # set track length when no info given
+# the default image can be (almost) any type of image
+# ideally it's roughly square and not too big, file size wise
+default_track_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
 
 lfm_api_key = "lastfm-api-key"
 lfm_usr = "lastfm-username"
 client_id = "discord-client-id" # pls discordddddd
-
 
 url_recent_track = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lfm_usr}&limit=1&api_key={lfm_api_key}&format=json'
 
@@ -23,8 +28,6 @@ def log(level, content):
         print(content)
 
 class Scrobbpy:
-    # default values
-    default_cycles = 7
     remaining_cycles = 0
     prev_track_url = ""
     new_track = False
@@ -32,9 +35,9 @@ class Scrobbpy:
     # rpc setup
     def __init__(self, client_id):
         if self.other_is_running():
-            log(1, "Other instance already running.")
+            log(1, "other instance already running.")
             exit(1)
-        log(1, "rpc init")
+        log(1, "init rpc")
         self
         self.rpc = Presence(client_id)
         self.rpc.connect()
@@ -91,29 +94,25 @@ class Scrobbpy:
 
                 length = track_j['track']['duration']
                 if length == "0":
-                    self.remaining_cycles = self.default_cycles
-                    log(2, f"set default timeout")
+                    self.remaining_cycles = default_cycles
+                    log(2, "set default timeout")
                 else:
                     self.remaining_cycles = int(length) / (update_interval * 1000) + 1
                     log(2, "set new timeout")
 
                 user_playcount = track_j['track']['userplaycount']
-                print_count = "time" 
-                if (user_playcount != 1):
-                    print_count = "times"
+                print_count = "time" if user_playcount != 1 else "times"
 
                 loved_status = track_j['track']['userloved']
-                print_loves = ""
-                if (loved_status == "1"):
-                    print_loves = " and loves it 🤍"
+                print_loves = "" if loved_status == "1" else " and loves it 🤍"
+
                 print_hover = f"{lfm_usr} listend to this track {user_playcount} {print_count}{print_loves}"
 
             except:
                 log(1, "track info could not be found, please check your scrobbler")
                 print_hover = "Error: could not fetch song data"
-                if (track_url != self.prev_track_url):
-                    self.remaining_cycles = self.default_cycles
-                    log(2, "set default timeout")
+                self.remaining_cycles = default_cycles
+                log(2, "set default timeout")
 
         # go to sleep (return to main) if cycles are exhausted
         if 0 > self.remaining_cycles:
@@ -126,7 +125,7 @@ class Scrobbpy:
             if (track_album != ""):
                 track_album = f" on {track_album}"
             if (track_image == ""):
-                track_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
+                track_image = default_track_image
             self.rpc.clear()
             self.rpc.update(
                 details=f"listening to {track_name}",
@@ -148,7 +147,7 @@ def main():
                 rpc.update()
                 time.sleep(update_interval)
     except ConnectionRefusedError:
-        print("Connection refused. Is Discord running?")
+        print("connection refused - is discord running?")
 
 if __name__ == "__main__":
     main()
