@@ -2,6 +2,7 @@
 
 from pypresence import Presence
 import urllib
+import urllib.request
 from urllib.request import urlopen
 import json
 import time
@@ -46,10 +47,14 @@ def log(level, content):
 
 # -----------------------------------------------------------
 
+class Track:
+    artist = name = image = url = mbid = length = album = album_mbid = ""
+
 class Scrobbpy:
     remaining_cycles = 0
     prev_track_url = ""
     new_track = False
+    track = Track
 
     # rpc setup
     def __init__(self, client_id):
@@ -80,6 +85,31 @@ class Scrobbpy:
             in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
         )
 
+    def req_mb(self, variant):
+        if (self.track.mbid != "" and self.track.album_mbid == ""):
+            log(2, "requesting musicbrainz for info")
+            mb_url = f"https://musicbrainz.org/ws/2/recording/?query={variant}:{self.track.mbid}&fmt=json"
+            log(3, "url: " + mb_url)
+            mb_req = urllib.request.Request(mb_url, data=None, headers={'User-Agent':'ShowScrobbing/1.1 ( https://github.com/jreeee/ShowScrobbling )'})
+            data_mb = urllib.request.urlopen(mb_req).read().decode()
+            track_mb_j = json.loads(data_mb)
+            self.track.album_mbid = track_mb_j['recordings'][0]['releases'][0]['id']
+            if self.track.length == 0:
+                self.track.lenth = track_mb_j['recordings'][0]['length'] # todo link up with the actual length thing
+            if self.track.album == "":
+                self.track.album = track_mb_j['recordings'][0]['releases'][0]['title']
+            log(3, "release mbid:" + self.track.album_mbid + ", length: " + self.track.length)
+        if (self.track.album_mbid != ""):
+            cover_arch_url = f"https://coverartarchive.org/release/{self.track.album_mbid}"
+            log(3, "coverurl: " + cover_arch_url)
+            cover_arch_req = urllib.request.urlopen(cover_arch_url).read().decode()
+            cover_j = json.loads(cover_arch_req)
+            self.track.image = cover_j['images'][0]['thumbnails']['large']
+            log(3, "3rd img link: " + self.track.image)
+
+        if self.track.image == "":
+            self.track.image = args.image
+
     # anything with _j is a json object
     def update(self):
         # query lastfm for the most recent track
@@ -88,16 +118,12 @@ class Scrobbpy:
         
         log(3, recent_track_j)
         # get recent track info
-        track_image = recent_track_j['recenttracks']['track'][0]['image'][3]['#text'] # Could be none
-        track_artist = recent_track_j['recenttracks']['track'][0]['artist']['#text']
-        track_name = recent_track_j['recenttracks']['track'][0]['name']
-        track_album = recent_track_j['recenttracks']['track'][0]['album']['#text'] # Could be none
-        track_url = recent_track_j['recenttracks']['track'][0]['url']
+        self.track.url = recent_track_j['recenttracks']['track'][0]['url']
 
         # in case of new track
-        if (track_url != self.prev_track_url):
+        if (self.track.url != self.prev_track_url):
             self.new_track = True
-            self.prev_track_url = track_url
+            self.prev_track_url = self.track.url
             # build url to fetch current track as standalone
             track_url_split = recent_track_j['recenttracks']['track'][0]['url'].split("/")
             url_artist = track_url_split[4]
@@ -111,13 +137,22 @@ class Scrobbpy:
 
                 log(3, track_j)
 
-                length = track_j['track']['duration']
-                if length == "0":
+                self.track.length = track_j['track']['duration']
+                if self.track.length == "0":
                     self.remaining_cycles = args.cycle
                     log(2, "set default timeout")
                 else:
-                    self.remaining_cycles = int(length) / (args.request * 1000) + 1
+                    self.remaining_cycles = int(self.track.length) / (args.request * 1000) + 1
                     log(2, "set new timeout")
+
+                self.track.image = recent_track_j['recenttracks']['track'][0]['image'][3]['#text'] # Could be none
+                self.track.album = recent_track_j['recenttracks']['track'][0]['album']['#text']
+                self.track.album_mbid = recent_track_j['recenttracks']['track'][0]['album']['mbid']
+
+                log(3, "1st img link: " + self.track.image)
+                if self.track.image == "":
+                    log(3, "2nd img link: " + self.track.image)
+                    self.track.image = track_j['track']['image'][3]['#text']
 
                 user_playcount = track_j['track']['userplaycount']
                 print_count = "times" if user_playcount != 1 else "time"
@@ -141,20 +176,28 @@ class Scrobbpy:
 
         # create new track rpc 
         if self.new_track:
-            if (track_album != ""):
-                track_album = f" on {track_album}"
-            if (track_image == ""):
-                track_image = args.image
+            self.track.artist = recent_track_j['recenttracks']['track'][0]['artist']['#text']
+            self.track.name = recent_track_j['recenttracks']['track'][0]['name']
+            self.track.mbid = recent_track_j['recenttracks']['track'][0]['mbid']
+
+            if (self.track.image == ""):
+                try:
+                    self.req_mb("tid")
+                except:
+                    self.req_mb("rid")
+
+            if (self.track.album != ""):
+                self.track.album = f" on {self.track.album}"
             self.rpc.clear()
             self.rpc.update(
-                details=f"listening to {track_name}",
-                state=f"by {track_artist}{track_album}",
-                large_image= track_image,
+                details=f"listening to {self.track.name}",
+                state=f"by {self.track.artist}{self.track.album}",
+                large_image= self.track.image,
                 large_text= print_hover,
-                buttons=[{"label": f"{track_name} on lastfm"[0:31], "url": track_url}, {"label": f"{lfm_usr}'s profile", "url": f"https://www.last.fm/user/{lfm_usr}"}],
+                buttons=[{"label": f"{self.track.name} on lastfm"[0:31], "url": self.track.url}, {"label": f"{lfm_usr}'s profile", "url": f"https://www.last.fm/user/{lfm_usr}"}],
             )
             self.new_track = False
-            log(1, f"playing: {track_name}, {track_artist}, {print_hover}")
+            log(1, f"playing: {self.track.name}, {self.track.artist}, {print_hover}")
 
         self.remaining_cycles = self.remaining_cycles - 1
         log(2, f"cycles remaining: {int(self.remaining_cycles)}")
