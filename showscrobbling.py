@@ -6,26 +6,45 @@ from urllib.request import urlopen
 import json
 import time
 import os
+import argparse
+
+# -----------------------------------------------------------
 
 # static values
+lfm_api_key = "5125b622ac7cb502b9a857bb59a57830"
+client_id = "1301054835101270117"
 
-log_level = 1 # 0: silent -> 3: debug
-# default track length: update_interval * default_cycles
-update_interval = 30 # in seconds - don't set it too low
-default_cycles = 7 # set track length when no info given
 # the default image can be (almost) any type of image
 # ideally it's roughly square and not too big, file size wise
-default_track_image = "https://media1.tenor.com/m/5iY6DCQf8r8AAAAC/patchouli-knowledge-patchy.gif"
+default_track_image = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
 
-lfm_api_key = "lastfm-api-key"
-lfm_usr = "lastfm-username"
-client_id = "discord-client-id" # pls discordddddd
+# parsing args and setting default values
+parser = argparse.ArgumentParser(
+    prog="ShowScrobbling",
+    description="displays your scrobbles on discord"
+)
+parser.add_argument("-u", "--user", nargs="?", help="your lastfm username")
+parser.add_argument("-l", "--loglevel", nargs="?", const=1, type=int, default=1, help="program generated output, 0: silent -> 3: debug, default 1")
+parser.add_argument("-i", "--image", nargs="?", const=1, default=default_track_image, help="default image link if there's none for the track")
+parser.add_argument("-c", "--cycle", nargs="?", const=1, type=int, default=7, help="relevant if track length not found, default is 7, then multiplied by request interval")
+parser.add_argument("-r", "--request", nargs="?", const=1, type=int, default=30, help="interval in seconds to request lastfm api for most recent track, default 30")
+args = parser.parse_args()
+
+# set username
+if args.user is not None:
+    lfm_usr = args.user
+else:
+    lfm_usr = input("please enter your lastfm username: ")
 
 url_recent_track = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lfm_usr}&limit=1&api_key={lfm_api_key}&format=json'
 
+# -----------------------------------------------------------
+
 def log(level, content):
-    if level <= log_level:
+    if level <= args.loglevel:
         print(content)
+
+# -----------------------------------------------------------
 
 class Scrobbpy:
     remaining_cycles = 0
@@ -58,7 +77,7 @@ class Scrobbpy:
         pid = os.getpid()
         return (
             "python"
-            in os.popen(f"ps aux | grep Scrobb.py | grep -v {pid}").read()
+            in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
         )
 
     # anything with _j is a json object
@@ -94,24 +113,24 @@ class Scrobbpy:
 
                 length = track_j['track']['duration']
                 if length == "0":
-                    self.remaining_cycles = default_cycles
+                    self.remaining_cycles = args.cycle
                     log(2, "set default timeout")
                 else:
-                    self.remaining_cycles = int(length) / (update_interval * 1000) + 1
+                    self.remaining_cycles = int(length) / (args.request * 1000) + 1
                     log(2, "set new timeout")
 
                 user_playcount = track_j['track']['userplaycount']
-                print_count = "time" if user_playcount != 1 else "times"
+                print_count = "times" if user_playcount != 1 else "time"
 
                 loved_status = track_j['track']['userloved']
-                print_loves = "" if loved_status == "1" else " and loves it 🤍"
+                print_loves = "" if loved_status != "1" else " and loves it 🤍"
 
-                print_hover = f"{lfm_usr} listend to this track {user_playcount} {print_count}{print_loves}"
+                print_hover = f"{lfm_usr} listened to this track {user_playcount} {print_count}{print_loves}"
 
             except:
                 log(1, "track info could not be found, please check your scrobbler")
                 print_hover = "Error: could not fetch song data"
-                self.remaining_cycles = default_cycles
+                self.remaining_cycles = args.cycle
                 log(2, "set default timeout")
 
         # go to sleep (return to main) if cycles are exhausted
@@ -125,7 +144,7 @@ class Scrobbpy:
             if (track_album != ""):
                 track_album = f" on {track_album}"
             if (track_image == ""):
-                track_image = default_track_image
+                track_image = args.image
             self.rpc.clear()
             self.rpc.update(
                 details=f"listening to {track_name}",
@@ -140,12 +159,14 @@ class Scrobbpy:
         self.remaining_cycles = self.remaining_cycles - 1
         log(2, f"cycles remaining: {int(self.remaining_cycles)}")
 
+# -----------------------------------------------------------
+
 def main():
     try:
         if rpc := Scrobbpy(client_id):
             while(True):
                 rpc.update()
-                time.sleep(update_interval)
+                time.sleep(args.request)
     except ConnectionRefusedError:
         print("connection refused - is discord running?")
 
