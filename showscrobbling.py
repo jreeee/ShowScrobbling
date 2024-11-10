@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-u", "--user", nargs="?", help="your lastfm username")
 parser.add_argument("-l", "--loglevel", nargs="?", const=1, type=int, default=1, help="program generated output, 0: silent -> 3: debug, default 1")
 parser.add_argument("-i", "--image", nargs="?", const=1, default=default_track_image, help="default image link if there's none for the track")
-parser.add_argument("-c", "--cycle", nargs="?", const=1, type=int, default=7, help="relevant if track length not found, default is 7, then multiplied by request interval")
+parser.add_argument("-c", "--cycle", nargs="?", const=1, type=int, default=10, help="relevant if track length not found, default is 7, then multiplied by request interval")
 parser.add_argument("-r", "--request", nargs="?", const=1, type=int, default=30, help="interval in seconds to request lastfm api for most recent track, default 30")
 args = parser.parse_args()
 
@@ -89,6 +89,7 @@ class Scrobbpy:
         track_mb_j = None
         if (self.track.mbid != "" and self.track.album_mbid == ""):
             log(2, "requesting musicbrainz for info")
+            # https://musicbrainz.org/ws/2/recording/MBID?fmt=json&inc=aliases might help
             mb_url = f"https://musicbrainz.org/ws/2/recording/?query={variant}:{self.track.mbid}&fmt=json"
             log(3, "url: " + mb_url)
             mb_req = urllib.request.Request(mb_url, data=None, headers={'User-Agent':'ShowScrobbing/1.1 ( https://github.com/jreeee/ShowScrobbling )'})
@@ -131,11 +132,12 @@ class Scrobbpy:
         if (self.track.url != self.prev_track_url):
             self.new_track = True
             self.prev_track_url = self.track.url
-            # build url to fetch current track as standalone
+            # split url into artist  and track name to fetch current track as standalone
             track_url_split = recent_track_j['recenttracks']['track'][0]['url'].split("/")
             url_artist = track_url_split[4]
             url_track = track_url_split[6]
             data_track_url = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={lfm_api_key}&track={url_track}&artist={url_artist}&username={lfm_usr}&format=json'
+            log(3, data_track_url)
 
             try:
                 # api call to get the track
@@ -143,6 +145,14 @@ class Scrobbpy:
                 track_j = json.loads(data_track)
 
                 log(3, json.dumps(track_j, indent=4))
+
+                user_playcount = track_j['track']['userplaycount']
+                print_count = "times" if user_playcount != 1 else "time"
+
+                loved_status = track_j['track']['userloved']
+                print_loves = "" if loved_status != "1" else " and loves it 🤍"
+
+                print_hover = f"{lfm_usr} listened to this track {user_playcount} {print_count}{print_loves}"
 
                 self.track.length = track_j['track']['duration']
                 if self.track.length == "0":
@@ -161,17 +171,10 @@ class Scrobbpy:
                     log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j['track']['image'][3]['#text']
 
-                user_playcount = track_j['track']['userplaycount']
-                print_count = "times" if user_playcount != 1 else "time"
-
-                loved_status = track_j['track']['userloved']
-                print_loves = "" if loved_status != "1" else " and loves it 🤍"
-
-                print_hover = f"{lfm_usr} listened to this track {user_playcount} {print_count}{print_loves}"
-
             except:
+                # currently broken, TODO improve error handling
                 log(1, "track info could not be found, please check your scrobbler")
-                print_hover = "Error: could not fetch song data from lastfm"
+                #print_hover = "Error: could not fetch song data from lastfm"
                 self.remaining_cycles = args.cycle
                 log(2, "set default timeout")
 
