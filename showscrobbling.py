@@ -85,7 +85,8 @@ class Scrobbpy:
             in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
         )
 
-    def req_mb(self, variant):
+    def req_mb(self, variant): # todo: save mbids and cycle through when no cover found
+        track_mb_j = None
         if (self.track.mbid != "" and self.track.album_mbid == ""):
             log(2, "requesting musicbrainz for info")
             mb_url = f"https://musicbrainz.org/ws/2/recording/?query={variant}:{self.track.mbid}&fmt=json"
@@ -99,11 +100,17 @@ class Scrobbpy:
             if self.track.album == "":
                 self.track.album = track_mb_j['recordings'][0]['releases'][0]['title']
             log(3, "release mbid:" + self.track.album_mbid + ", length: " + self.track.length)
-        if (self.track.album_mbid != ""):
+        if (self.track.album_mbid != "" and track_mb_j ):
             cover_arch_url = f"https://coverartarchive.org/release/{self.track.album_mbid}"
             log(3, "coverurl: " + cover_arch_url)
-            cover_arch_req = urllib.request.urlopen(cover_arch_url).read().decode()
-            cover_j = json.loads(cover_arch_req)
+            cover_arch_req = urllib.request.urlopen(cover_arch_url)
+            if (cover_arch_req.getcode() == 404) and (track_mb_j != None) :
+                self.track.album_mbid = track_mb_j['recordings'][0]['releases'][1]['id']
+                cover_arch_url = f"https://coverartarchive.org/release/{self.track.album_mbid}"
+                log(3, "2nd coverurl: " + cover_arch_url)
+            cover_arch_req = urllib.request.urlopen(cover_arch_url)
+            url_decoded = cover_arch_req.read().decode()
+            cover_j = json.loads(url_decoded)
             self.track.image = cover_j['images'][0]['thumbnails']['large']
             log(3, "3rd img link: " + self.track.image)
 
@@ -116,7 +123,7 @@ class Scrobbpy:
         data_recent_track = urllib.request.urlopen(url_recent_track).read().decode()
         recent_track_j = json.loads(data_recent_track)
         
-        log(3, recent_track_j)
+        log(3, json.dumps(recent_track_j, indent=4))
         # get recent track info
         self.track.url = recent_track_j['recenttracks']['track'][0]['url']
 
@@ -135,7 +142,7 @@ class Scrobbpy:
                 data_track = urllib.request.urlopen(data_track_url).read().decode()
                 track_j = json.loads(data_track)
 
-                log(3, track_j)
+                log(3, json.dumps(track_j, indent=4))
 
                 self.track.length = track_j['track']['duration']
                 if self.track.length == "0":
@@ -164,7 +171,7 @@ class Scrobbpy:
 
             except:
                 log(1, "track info could not be found, please check your scrobbler")
-                print_hover = "Error: could not fetch song data"
+                print_hover = "Error: could not fetch song data from lastfm"
                 self.remaining_cycles = args.cycle
                 log(2, "set default timeout")
 
@@ -181,10 +188,18 @@ class Scrobbpy:
             self.track.mbid = recent_track_j['recenttracks']['track'][0]['mbid']
 
             if (self.track.image == ""):
+                query_worked = False
                 try:
                     self.req_mb("tid")
+                    query_worked = True
                 except:
-                    self.req_mb("rid")
+                    log(2, "musicbrainz tid query failed")
+                if not query_worked:
+                    try:
+                        self.req_mb("rid")
+                    except:
+                        log(1, "musicbrainz query failed")
+                        self.track.image = default_track_image
 
             if (self.track.album != ""):
                 self.track.album = f" on {self.track.album}"
@@ -208,7 +223,10 @@ def main():
     try:
         if rpc := Scrobbpy(client_id):
             while(True):
-                rpc.update()
+                try:
+                  rpc.update()
+                except:
+                    print(f"something went wrong, trying again in {args.request}s")
                 time.sleep(args.request)
     except ConnectionRefusedError:
         print("connection refused - is discord running?")
