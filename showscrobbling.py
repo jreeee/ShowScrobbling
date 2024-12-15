@@ -9,6 +9,8 @@ import time
 import os
 import argparse
 
+import traceback
+
 # -----------------------------------------------------------
 
 # static values
@@ -123,7 +125,7 @@ class Scrobbpy:
         # query lastfm for the most recent track
         data_recent_track = urllib.request.urlopen(url_recent_track).read().decode()
         recent_track_j = json.loads(data_recent_track)
-        
+
         log(3, json.dumps(recent_track_j, indent=4))
         # get recent track info
         self.track.url = recent_track_j['recenttracks']['track'][0]['url']
@@ -147,7 +149,7 @@ class Scrobbpy:
                 log(3, json.dumps(track_j, indent=4))
 
                 user_playcount = track_j['track']['userplaycount']
-                print_count = "times" if user_playcount != 1 else "time"
+                print_count = "times" if user_playcount != "1" else "time"
 
                 loved_status = track_j['track']['userloved']
                 print_loves = "" if loved_status != "1" else " and loves it 🤍"
@@ -171,10 +173,15 @@ class Scrobbpy:
                     log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j['track']['image'][3]['#text']
 
-            except:
-                # currently broken, TODO improve error handling
+            except KeyError:
+                # happens when e.g. lastfm returns a track not found
                 log(1, "track info could not be found, please check your scrobbler")
-                #print_hover = "Error: could not fetch song data from lastfm"
+                self.remaining_cycles = args.cycle
+                print_hover = "Error: could not fetch song data from lastfm"
+                log(2, "set default timeout")
+
+            except Exception as e:
+                log(1, str(e) + " occurred in " + traceback.format_exc())
                 self.remaining_cycles = args.cycle
                 log(2, "set default timeout")
 
@@ -206,6 +213,8 @@ class Scrobbpy:
 
             if (self.track.album != ""):
                 self.track.album = f" on {self.track.album}"
+            if (print_hover == None):
+                print_hover = "error fetching playcount data from lastfm"
             self.rpc.clear()
             self.rpc.update(
                 details=f"listening to {self.track.name}",
@@ -228,11 +237,16 @@ def main():
             while(True):
                 try:
                   rpc.update()
-                except:
+                except Exception as e:
+                    log(1, str(e) + " occurred in " + traceback.format_exc())
                     print(f"something went wrong, trying again in {args.request}s")
                 time.sleep(args.request)
     except ConnectionRefusedError:
         print("connection refused - is discord running?")
+    except KeyboardInterrupt:
+        print("exiting")
+        del rpc
+        exit(0)
 
 if __name__ == "__main__":
     main()
