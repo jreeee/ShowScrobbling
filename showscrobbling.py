@@ -78,7 +78,7 @@ class Scrobbpy:
                 self.rpc.close()
         except AttributeError:
             log(2, "rpc attribute missing")
-        log(1, "exiting")
+        log(1, "rpc object deleted")
 
     def other_is_running(self):
         pid = os.getpid()
@@ -132,8 +132,10 @@ class Scrobbpy:
 
         # in case of new track
         if (self.track.url != self.prev_track_url):
-            self.new_track = True
             self.prev_track_url = self.track.url
+            # clear old track values
+            self.track = Track
+            self.new_track = True
             # split url into artist  and track name to fetch current track as standalone
             track_url_split = recent_track_j['recenttracks']['track'][0]['url'].split("/")
             url_artist = track_url_split[4]
@@ -239,12 +241,12 @@ def main():
                   rpc.update()
                 except Exception as e:
                     log(1, str(e) + " occurred in " + traceback.format_exc())
-                    print(f"something went wrong, trying again in {args.request}s")
+                    log(1, f"trying again in {args.request}s")
                 time.sleep(args.request)
     except ConnectionRefusedError:
-        print("connection refused - is discord running?")
+        log(1, "connection refused - is discord running?")
     except KeyboardInterrupt:
-        print("exiting")
+        log(1, "exiting")
         del rpc
         exit(0)
 
