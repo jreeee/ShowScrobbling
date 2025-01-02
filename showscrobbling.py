@@ -13,7 +13,6 @@ import argparse
 import traceback
 import json
 
-
 import urllib
 import urllib.request
 
@@ -21,6 +20,7 @@ from pypresence import Presence
 
 # -----------------------------------------------------------
 
+VERSION = "1.1"
 # static values
 LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"
 CLIENT_ID = "1301054835101270117"
@@ -111,11 +111,10 @@ class Scrobbpy:
             log(1, "other instance already running.")
             sys.exit(1)
         log(1, "init rpc")
-        self
         self.rpc = Presence(CLIENT_ID)
         self.rpc.connect()
         self.rpc_connected = True
-        log(1, "init finished")
+        log(1, f"init finished, running version {VERSION}")
 
     # rpc cleanup
     def __del__(self):
@@ -147,7 +146,7 @@ class Scrobbpy:
                 mb_url,
                 data=None,
                 headers={
-                    "User-Agent": "ShowScrobbing/1.1 ( https://github.com/jreeee/ShowScrobbling )"
+                    "User-Agent": f"ShowScrobbing/{VERSION} ( https://github.com/jreeee/ShowScrobbling )"
                 },
             )
             data_mb = urllib.request.urlopen(mb_req).read().decode()

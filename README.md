@@ -1,4 +1,6 @@
 # ShowScrobbling
+[![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 
 showscrobbling is an inofficial discord rich presence lastfm scrobble displaying app written in python.
 
