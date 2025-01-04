@@ -10,7 +10,7 @@ showscrobbling aims to be simple, lightweight, cross-platform and easy to adapt 
 
 before starting the programm please execute setup.py and enter your username when prompted.
 this will create a file called constats.py in the framework folder where various static values reside.
-just start the program it, then should automatically connect to discord and show which song you are currently listening to. it updates every 30s to fetch the currently playing song.
+just start the program, it then should automatically connect to discord and show which song you are currently listening to. it updates every 30s to fetch the currently playing song.
 
 because of python, you can use this on Windows and Linux (probably also Mac) and with any scrobbler as long as it updates your lastfm page somewhat regularly.
 
