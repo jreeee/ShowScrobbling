@@ -9,7 +9,6 @@ to display coverart of your currently scrobbling song in Discord
 import sys
 import os
 import time
-import argparse
 import traceback
 import json
 
@@ -18,66 +17,21 @@ import urllib.request
 
 from pypresence import Presence
 
+import framework.args as parser
+import framework.constants as const
+
 # -----------------------------------------------------------
 
-VERSION = "1.1"
-# static values
-LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"
-CLIENT_ID = "1301054835101270117"
+VERSION = "1.2"
 
-# the default image can be (almost) any type of image
-# ideally it's roughly square and not too big, file size wise
-DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
-
-# parsing args and setting default values
-parser = argparse.ArgumentParser(
-    prog="ShowScrobbling", description="displays your scrobbles on discord"
-)
-parser.add_argument("-u", "--user", nargs="?", help="your lastfm username")
-parser.add_argument(
-    "-l",
-    "--loglevel",
-    nargs="?",
-    const=1,
-    type=int,
-    default=1,
-    help="program generated output, 0: silent -> 3: debug, default 1",
-)
-parser.add_argument(
-    "-i",
-    "--image",
-    nargs="?",
-    const=1,
-    default=DEFAULT_TRACK_IMAGE,
-    help="default image link if there's none for the track",
-)
-parser.add_argument(
-    "-c",
-    "--cycle",
-    nargs="?",
-    const=1,
-    type=int,
-    default=10,
-    help="relevant if track length not found, default is 7, then multiplied by request interval",
-)
-parser.add_argument(
-    "-r",
-    "--request",
-    nargs="?",
-    const=1,
-    type=int,
-    default=30,
-    help="interval in seconds to request lastfm api for most recent track, default 30",
-)
+# get and parse args
 args = parser.parse_args()
 
 # set username
 if args.user is not None:
-    lfm_usr = args.user
+    LFM_USR = args.user
 else:
-    lfm_usr = input("please enter your lastfm username: ")
-
-URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={lfm_usr}&limit=1&api_key={LFM_API_KEY}&format=json'
+    LFM_USR = const.USR
 
 # -----------------------------------------------------------
 
@@ -106,12 +60,12 @@ class Scrobbpy:
     track = Track
 
     # rpc setup
-    def __init__(self, CLIENT_ID):
+    def __init__(self, client_id):
         if self.other_is_running():
             log(1, "other instance already running.")
             sys.exit(1)
         log(1, "init rpc")
-        self.rpc = Presence(CLIENT_ID)
+        self.rpc = Presence(client_id)
         self.rpc.connect()
         self.rpc_connected = True
         log(1, f"init finished, running version {VERSION}")
@@ -140,7 +94,7 @@ class Scrobbpy:
         if self.track.mbid != "" and self.track.album_mbid == "":
             log(2, "requesting musicbrainz for info")
             # https://musicbrainz.org/ws/2/recording/MBID?fmt=json&inc=aliases might help
-            mb_url = f"https://musicbrainz.org/ws/2/recording/?query={variant}:{self.track.mbid}&fmt=json"
+            mb_url = f"{const.MB_REC_QRY}{variant}:{self.track.mbid}&fmt=json"
             log(3, "url: " + mb_url)
             mb_req = urllib.request.Request(
                 mb_url,
@@ -190,7 +144,9 @@ class Scrobbpy:
         """called every interval to check the current status"""
 
         # query lastfm for the most recent track
-        data_recent_track = urllib.request.urlopen(URL_RECENT_TRACK).read().decode()
+        data_recent_track = (
+            urllib.request.urlopen(const.URL_RECENT_TRACK).read().decode()
+        )
         recent_track_j = json.loads(data_recent_track)
 
         log(3, json.dumps(recent_track_j, indent=4))
@@ -209,7 +165,7 @@ class Scrobbpy:
             )
             url_artist = track_url_split[4]
             url_track = track_url_split[6]
-            data_track_url = f"http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={LFM_API_KEY}&track={url_track}&artist={url_artist}&username={lfm_usr}&format=json"
+            data_track_url = f"{const.URL_TRACK_INFO}&track={url_track}&artist={url_artist}&format=json"
             log(3, data_track_url)
 
             try:
@@ -225,7 +181,7 @@ class Scrobbpy:
                 loved_status = track_j["track"]["userloved"]
                 print_loves = "" if loved_status != "1" else " and loves it 🤍"
 
-                print_hover = f"{lfm_usr} listened to this track {user_playcount} {print_count}{print_loves}"
+                print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
                 self.track.length = track_j["track"]["duration"]
                 if self.track.length == "0":
@@ -291,7 +247,7 @@ class Scrobbpy:
                         self.req_mb("rid")
                     except:
                         log(1, "musicbrainz query failed")
-                        self.track.image = DEFAULT_TRACK_IMAGE
+                        self.track.image = const.DEFAULT_TRACK_IMAGE
 
             if self.track.album != "":
                 self.track.album = f" on {self.track.album}"
@@ -309,8 +265,8 @@ class Scrobbpy:
                         "url": self.track.url,
                     },
                     {
-                        "label": f"{lfm_usr}'s profile",
-                        "url": f"https://www.last.fm/user/{lfm_usr}",
+                        "label": f"{LFM_USR}'s profile",
+                        "url": f"https://www.last.fm/user/{LFM_USR}",
                     },
                 ],
             )
@@ -327,7 +283,7 @@ class Scrobbpy:
 def main():
     """main method for ShowScrobbling"""
     try:
-        if rpc := Scrobbpy(CLIENT_ID):
+        if rpc := Scrobbpy(const.CLIENT_ID):
             while True:
                 try:
                     rpc.update()
