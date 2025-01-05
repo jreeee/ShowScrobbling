@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 100
+exclude = '''
+/(
+    ../framework/__pycache__
+  | ../framework/constants.py
+  | ../setup.py
+)/
+'''
