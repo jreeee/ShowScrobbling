@@ -20,10 +20,7 @@ when hovering over the icon the playcount is displayed. if the user has the trac
 
 when another discord user clicks on your activity, tey'll have two buttons, linking to the song page on lastfm and your profile respectively.
 
-i'm currently in the process of tidying this up a bit, right now i use the following
-```
-# python -m black showscrobbling.py && pylint showscrobbling.py
-```
+for linting and formatting the code, the `setup.py` provides a prompt to create a pre-commit hook. this uses `black` for formatting and `pylint` for linting. currently only the formatting has to pass for the commit to be valid and i use pylint more as reference.
 
 ## requirements
 
