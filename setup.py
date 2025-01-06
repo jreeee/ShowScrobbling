@@ -24,13 +24,12 @@ if CONST_FILE.exists():
 USERNAME = input("please enter your lastfm username: ")
 
 with open(CONST_FILE, "w", encoding='utf-8') as constants:
-    constants.write("# pylint: skip-file")
+    constants.write("# pylint: skip-file\n\n")
     constants.write("# the following values can be changed\n")
     constants.write(f'USR = "{USERNAME}"\n')
-    constants.write('DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"\n')
-    constants.write("\n# the following values shouldn't be changed\n")
+    constants.write('DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"\n\n')
+    constants.write("# the following values shouldn't be changed\n")
     constants.write('LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"\n')
-    constants.write('LFM_TR_IN_QRY = "http://ws.audioscrobbler.com/2.0/?method=track.getInfo"\n')
     constants.write('MB_REC_QRY = "https://musicbrainz.org/ws/2/recording/?query="\n\n')
     constants.write('CLIENT_ID = "1301054835101270117"\n')
     constants.write("URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying=\"true\"&user={USR}&limit=1&api_key={LFM_API_KEY}&format=json'\n")
@@ -47,7 +46,7 @@ if res != "Y" and res != "y":
 
 with open(HOOK_FILE, "w", encoding='utf-8') as hooks:
     hooks.write("#!/bin/bash\n\n")
-    hooks.write('echo "pre-commit checks:"')
+    hooks.write('echo "pre-commit checks:"\n')
     hooks.write('echo "- running black" && black --force-exclude="setup.py" --verbose .\n')
     hooks.write("if [ $? -ne 0 ]; then\n")
     hooks.write('    echo "Pre-commit hook failed. Please fix the issues and try again."\n')
