@@ -193,10 +193,13 @@ class Scrobbpy:
                     )
                     log(2, "set new timeout")
 
-                # Could be none
+                # Try track image, could be empty
                 self.track.image = recent_track_j["recenttracks"]["track"][0]["image"][
                     3
                 ]["#text"]
+                # if we get no track image, try the album image instead
+                if self.track.image == "":
+                    self.track.image = track_j["track"]["album"]["image"][3]["#text"]
                 self.track.album = recent_track_j["recenttracks"]["track"][0]["album"][
                     "#text"
                 ]
