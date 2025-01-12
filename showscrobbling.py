@@ -89,6 +89,13 @@ class Scrobbpy:
             in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
         )
 
+    def sleep(self):
+        """zzzzzzzzz"""
+        self.rpc.clear()
+        self.sleeping = True
+        log(1, "no song playing, sleeping")
+        return
+
     def req_mb(self, variant):  # todo: save mbids and cycle through when no cover found
         """send a request to MusicBrainz to get the mbid of the track and get coverart"""
         track_mb_j = None
@@ -155,12 +162,12 @@ class Scrobbpy:
         playing = recent_track_j["recenttracks"]["track"][0].get("@attr", {})
         print(playing)
         if len(playing) == 0:
-            log(3, f"song stopped, sleeping")
+            self.sleep()
             return
         # i don't think this is necessary, but better safe than sorry
         key, value = next(iter(playing.items()))
         if key != "nowplaying" or value != "true":
-            log(3, f"song stopped, sleeping")
+            self.sleep()
             return
 
         self.track.url = recent_track_j["recenttracks"]["track"][0]["url"]
@@ -243,10 +250,9 @@ class Scrobbpy:
                 log(2, "set default timeout")
 
         # go to sleep (return to main) if cycles are exhausted
+        # kinda redundant with the addition of nowplaying
         if 0 > self.remaining_cycles and not self.sleeping:
-            self.rpc.clear()
-            self.sleeping = True
-            log(1, "song probably paused, sleeping")
+            self.sleep()
             return
 
         # create new track rpc
