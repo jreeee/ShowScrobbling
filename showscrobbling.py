@@ -6,23 +6,24 @@ a small-ish python script that uses Pypresence and last.fm (and MusicBrainz)
 to display coverart of your currently scrobbling song in Discord 
 """
 
+# system libraries
 import sys
 import os
 import time
 import traceback
 import json
 
-import urllib
+# external libraries
 import urllib.request
-
 from pypresence import Presence
 
+# local project files
 import framework.args as parser
 import framework.constants as const
 
 # -----------------------------------------------------------
 
-VERSION = "1.3"
+VERSION = "1.4"
 
 # get and parse args
 args = parser.parse_args()
@@ -54,11 +55,11 @@ class Track:
 class Scrobbpy:
     """script object"""
 
-    remaining_cycles = 0
     prev_track_url = ""
     new_track = False
     sleeping = False
     track = Track
+    starttime = 0
 
     # rpc setup
     def __init__(self, client_id):
@@ -91,10 +92,12 @@ class Scrobbpy:
 
     def sleep(self):
         """zzzzzzzzz"""
-        self.rpc.clear()
-        self.sleeping = True
-        log(1, "no song playing, sleeping")
-        return
+        # all of the following things need to be set just once for a given sleep period
+        if not self.sleeping:
+            self.rpc.clear()
+            self.sleeping = True
+            self.prev_track_url = ""
+            log(1, "no song playing, sleeping")
 
     def req_mb(self, variant):  # todo: save mbids and cycle through when no cover found
         """send a request to MusicBrainz to get the mbid of the track and get coverart"""
@@ -173,6 +176,8 @@ class Scrobbpy:
 
         # in case of new track
         if self.track.url != self.prev_track_url:
+            # roughly the start time, +- args.request / 2 (15s)
+            starttime = time.time() - (args.request / 2)
             self.new_track = True
             self.sleeping = False
             self.prev_track_url = self.track.url
@@ -216,17 +221,6 @@ class Scrobbpy:
 
                 print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
-                # cycle calculation
-                self.track.length = track_j["track"]["duration"]
-                if self.track.length == "0":
-                    self.remaining_cycles = args.cycle
-                    log(2, "set default timeout")
-                else:
-                    self.remaining_cycles = (
-                        int(self.track.length) / (args.request * 1000) + 1
-                    )
-                    log(2, "set new timeout")
-
                 # get track image from the track obj instead of recenttrack obj
                 if self.track.image == "":
                     log(3, "2nd img link: " + self.track.image)
@@ -239,20 +233,10 @@ class Scrobbpy:
             except KeyError:
                 # happens when e.g. lastfm returns a track not found
                 log(1, "track info could not be found, please check your scrobbler")
-                self.remaining_cycles = args.cycle
                 print_hover = "Error: could not fetch song data from lastfm"
-                log(2, "set default timeout")
 
             except Exception as e:
                 log(1, str(e) + " occurred in " + traceback.format_exc())
-                self.remaining_cycles = args.cycle
-                log(2, "set default timeout")
-
-        # go to sleep (return to main) if cycles are exhausted
-        # kinda redundant with the addition of nowplaying
-        if 0 > self.remaining_cycles and not self.sleeping:
-            self.sleep()
-            return
 
         # create new track rpc
         if self.new_track:
@@ -283,6 +267,7 @@ class Scrobbpy:
             self.rpc.clear()
             self.rpc.update(
                 details=f"listening to {self.track.name}",
+                start=starttime,
                 state=f"by {self.track.artist}{self.track.album}",
                 large_image=self.track.image,
                 large_text=print_hover,
@@ -299,10 +284,6 @@ class Scrobbpy:
             )
             self.new_track = False
             log(1, f"playing: {self.track.name}, {self.track.artist}, {print_hover}")
-
-        self.remaining_cycles = self.remaining_cycles - 1
-        log(2, f"cycles remaining: {int(self.remaining_cycles)}")
-
 
 # -----------------------------------------------------------
 

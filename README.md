@@ -53,7 +53,4 @@ args | default | desc
 -u \| --user | - | your lastfm username 
 -l \| --loglevel | 1 | program generated output, 0: silent -> 3: debug, default 1
 -i \| --image | [this](https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif) | default image link if there's none for the track
--c \| --cycle | 10 | used to calculate track length if not found*
 -r \| --request | 30 | interval in seconds to request the lastfm api for most recent track
-
-*currently the api is queried every 30 seconds, since some scrobblers do not correctly transmit when tracks are paused, i decided to implement a very rudimentary cycle approach, that checks how long track are and then gets a cycle count from that. so for a 4 minute track we'd get 9 cycles (8 + 1 "bonus") based off of the request frequency. every request the cycle is decreased. if we land at 0 the song is playing longer than it should and thus has likely been paused. in that case the script sleeps and clears the rpc picture, waking up when a new song is scrobbled. since not all songs have a set length on lastfm there are instances where the script has to "guess" a length. for now this value is set to 10, so roughly a 5 to 5.5 min track, after which the program will 'sleep'.
