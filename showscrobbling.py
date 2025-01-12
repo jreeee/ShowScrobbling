@@ -22,7 +22,7 @@ import framework.constants as const
 
 # -----------------------------------------------------------
 
-VERSION = "1.2"
+VERSION = "1.3"
 
 # get and parse args
 args = parser.parse_args()
@@ -57,6 +57,7 @@ class Scrobbpy:
     remaining_cycles = 0
     prev_track_url = ""
     new_track = False
+    sleeping = False
     track = Track
 
     # rpc setup
@@ -134,7 +135,7 @@ class Scrobbpy:
             url_decoded = cover_arch_req.read().decode()
             cover_j = json.loads(url_decoded)
             self.track.image = cover_j["images"][0]["thumbnails"]["large"]
-            log(3, "3rd img link: " + self.track.image)
+            log(3, "4th img link: " + self.track.image)
 
         if self.track.image == "":
             self.track.image = args.image
@@ -151,14 +152,26 @@ class Scrobbpy:
 
         log(3, json.dumps(recent_track_j, indent=4))
         # get recent track info
+        playing = recent_track_j["recenttracks"]["track"][0].get("@attr", {})
+        print(playing)
+        if len(playing) == 0:
+            log(3, f"song stopped, sleeping")
+            return
+        # i don't think this is necessary, but better safe than sorry
+        key, value = next(iter(playing.items()))
+        if key != "nowplaying" or value != "true":
+            log(3, f"song stopped, sleeping")
+            return
+
         self.track.url = recent_track_j["recenttracks"]["track"][0]["url"]
 
         # in case of new track
         if self.track.url != self.prev_track_url:
             self.new_track = True
+            self.sleeping = False
             self.prev_track_url = self.track.url
             # clear old track values
-            self.track = Track
+            self.track = Track.__new__(Track)
             # split url into artist  and track name to fetch current track as standalone
             track_url_split = recent_track_j["recenttracks"]["track"][0]["url"].split(
                 "/"
@@ -168,13 +181,27 @@ class Scrobbpy:
             data_track_url = f"{const.URL_TRACK_INFO}&track={url_track}&artist={url_artist}&format=json"
             log(3, data_track_url)
 
+            # Try track image, could be empty
+            self.track.image = recent_track_j["recenttracks"]["track"][0]["image"][3][
+                "#text"
+            ]
+            log(3, "1st img link: " + self.track.image)
+            self.track.album = recent_track_j["recenttracks"]["track"][0]["album"][
+                "#text"
+            ]
+            self.track.album_mbid = recent_track_j["recenttracks"]["track"][0]["album"][
+                "mbid"
+            ]
+
             try:
-                # api call to get the track
+                # api call to get track for more info since this can result in a
+                # "track not found", everything here is in a try block
                 data_track = urllib.request.urlopen(data_track_url).read().decode()
                 track_j = json.loads(data_track)
 
                 log(3, json.dumps(track_j, indent=4))
 
+                # hover text for the rpc
                 user_playcount = track_j["track"]["userplaycount"]
                 print_count = "times" if user_playcount != "1" else "time"
 
@@ -183,6 +210,7 @@ class Scrobbpy:
 
                 print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
+                # cycle calculation
                 self.track.length = track_j["track"]["duration"]
                 if self.track.length == "0":
                     self.remaining_cycles = args.cycle
@@ -193,24 +221,14 @@ class Scrobbpy:
                     )
                     log(2, "set new timeout")
 
-                # Try track image, could be empty
-                self.track.image = recent_track_j["recenttracks"]["track"][0]["image"][
-                    3
-                ]["#text"]
-                # if we get no track image, try the album image instead
-                if self.track.image == "":
-                    self.track.image = track_j["track"]["album"]["image"][3]["#text"]
-                self.track.album = recent_track_j["recenttracks"]["track"][0]["album"][
-                    "#text"
-                ]
-                self.track.album_mbid = recent_track_j["recenttracks"]["track"][0][
-                    "album"
-                ]["mbid"]
-
-                log(3, "1st img link: " + self.track.image)
+                # get track image from the track obj instead of recenttrack obj
                 if self.track.image == "":
                     log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j["track"]["image"][3]["#text"]
+                # if we get no track image, try the album image instead
+                if self.track.image == "":
+                    log(3, "3rd img link: " + self.track.image)
+                    self.track.image = track_j["track"]["album"]["image"][3]["#text"]
 
             except KeyError:
                 # happens when e.g. lastfm returns a track not found
@@ -225,8 +243,9 @@ class Scrobbpy:
                 log(2, "set default timeout")
 
         # go to sleep (return to main) if cycles are exhausted
-        if 0 > self.remaining_cycles:
+        if 0 > self.remaining_cycles and not self.sleeping:
             self.rpc.clear()
+            self.sleeping = True
             log(1, "song probably paused, sleeping")
             return
 
