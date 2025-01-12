@@ -160,7 +160,6 @@ class Scrobbpy:
         log(3, json.dumps(recent_track_j, indent=4))
         # get recent track info
         playing = recent_track_j["recenttracks"]["track"][0].get("@attr", {})
-        print(playing)
         if len(playing) == 0:
             self.sleep()
             return
