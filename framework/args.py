@@ -5,6 +5,15 @@ dealing with arguments
 import argparse
 import framework.constants as const
 
+def int_min(arg):
+    """ensure that the lfm api isn't bombarded with requests"""
+    try:
+        i = int(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError("request interval must me int")
+    if int(const.MIN_QRY_INT) > i:
+        raise argparse.ArgumentTypeError(f"request interval must be at least {const.MIN_QRY_INT}")
+    return i
 
 def parse_args():
     """parsing args and setting default values"""
@@ -30,20 +39,11 @@ def parse_args():
         help="default image link if there's none for the track",
     )
     parser.add_argument(
-        "-c",
-        "--cycle",
-        nargs="?",
-        const=1,
-        type=int,
-        default=10,
-        help="relevant if track length not found, default = 7, then multiplied by request interval",
-    )
-    parser.add_argument(
         "-r",
         "--request",
         nargs="?",
         const=1,
-        type=int,
+        type=int_min,
         default=30,
         help="interval in seconds to request lastfm api for most recent track, default 30",
     )

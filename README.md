@@ -4,7 +4,7 @@
 
 ### description
 
-showscrobbling is an inofficial discord rich presence lastfm scrobble displaying script written in python.
+showscrobbling (shoscro) is an inofficial discord rich presence lastfm scrobble displaying script written in python.
 
 it checks your lastfm profile for a currently playing track and displays it on discord.
 
@@ -17,13 +17,23 @@ showscrobbling aims to be simple, lightweight, cross-platform and easy to adapt 
 i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/) or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change.
 
 ### setup
+#### cli:
+`# git clone https://github.com/jreeee/ShowScrobbling`
 
-before starting the programm please execute `setup.py` and enter your username when prompted.
-this will create a file called `constats.py` in the framework folder where various static values reside.
+`# cd ShowScrobbling  && ./setup.py`
+
+`# pip install -r requirements.txt` (or use your packet manager to install the [reqs](#requirements))
+#### other:
+download the repo and unzip it.
+before starting the programm please execute the `setup.py` file and enter your username when prompted.
+this will create a file called `constats.py` in the `framework` folder where various static values reside. you'll also need to install the [required libraries](#requirements) for shoscro to work
+
+#### troubleshooting
+should a upgrade to a new version throw errors, run `./setup.py` again and, when prompted, type 'u' to update the `constants.py` this will update the file without the need to retype the previously set username.
 
 ### startup
 
-after doing that just start the program, it then should automatically connect to discord and show which song you are currently listening to. it updates every 30s to fetch the currently playing song from lastfm.
+after doing the setup just start the program, it then should automatically connect to discord and show which song you are currently listening to. it updates every 30s to fetch the currently playing song from lastfm.
 
 because it is written in python, you can use this on Windows and Linux (probably also Mac) and with any scrobbler as long as it updates your lastfm page somewhat regularly.
 
@@ -32,6 +42,10 @@ because it is written in python, you can use this on Windows and Linux (probably
 when hovering over the icon the playcount is displayed. if the user has the track set as 'loved' this will also be shown here.
 
 when another discord user clicks on your activity, they'll have two buttons, linking to the song page on lastfm and your profile respectively.
+
+shoscro will check every thrity seconds to see if the currently playing track has changed and update accordingly
+
+### development
 
 for linting and formatting the code, the `setup.py` provides a prompt to create a pre-commit hook. this uses `black` for formatting and `pylint` for linting. currently only the formatting has to pass for the commit to be valid and i use pylint more as reference.
 
