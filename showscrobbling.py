@@ -145,7 +145,7 @@ class Scrobbpy:
             url_decoded = cover_arch_req.read().decode()
             cover_j = json.loads(url_decoded)
             self.track.image = cover_j["images"][0]["thumbnails"]["large"]
-            log(3, "4th img link: " + self.track.image)
+            log(3, "3rd img link: " + self.track.image)
 
         if self.track.image == "":
             self.track.image = args.image
@@ -221,13 +221,9 @@ class Scrobbpy:
 
                 print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
-                # get track image from the track obj instead of recenttrack obj
-                if self.track.image == "":
-                    log(3, "2nd img link: " + self.track.image)
-                    self.track.image = track_j["track"]["image"][3]["#text"]
                 # if we get no track image, try the album image instead
                 if self.track.image == "":
-                    log(3, "3rd img link: " + self.track.image)
+                    log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j["track"]["album"]["image"][3]["#text"]
 
             except KeyError:
