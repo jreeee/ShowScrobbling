@@ -23,7 +23,7 @@ import framework.constants as const
 
 # -----------------------------------------------------------
 
-VERSION = "1.4"
+VERSION = "1.5"
 
 # get and parse args
 args = parser.parse_args()
@@ -269,17 +269,18 @@ class Scrobbpy:
                 large_text=print_hover,
                 buttons=[
                     {
-                        "label": f"{self.track.name} on lastfm"[0:31],
+                        "label": "song on last.fm",
                         "url": self.track.url,
                     },
                     {
-                        "label": f"{LFM_USR}'s profile",
+                        "label": f"{LFM_USR}'s profile"[0:31],
                         "url": f"https://www.last.fm/user/{LFM_USR}",
                     },
                 ],
             )
             self.new_track = False
             log(1, f"playing: {self.track.name}, {self.track.artist}, {print_hover}")
+
 
 # -----------------------------------------------------------
 

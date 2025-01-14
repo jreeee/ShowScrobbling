@@ -5,6 +5,7 @@ dealing with arguments
 import argparse
 import framework.constants as const
 
+
 def int_min(arg):
     """ensure that the lfm api isn't bombarded with requests"""
     try:
@@ -12,8 +13,11 @@ def int_min(arg):
     except ValueError:
         raise argparse.ArgumentTypeError("request interval must me int")
     if int(const.MIN_QRY_INT) > i:
-        raise argparse.ArgumentTypeError(f"request interval must be at least {const.MIN_QRY_INT}")
+        raise argparse.ArgumentTypeError(
+            f"request interval must be at least {const.MIN_QRY_INT}"
+        )
     return i
+
 
 def parse_args():
     """parsing args and setting default values"""
