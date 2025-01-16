@@ -168,7 +168,7 @@ class Scrobbpy:
             return
         # i don't think this is necessary, but better safe than sorry
         key, value = next(iter(playing.items()))
-        if key != "nowplaying" or value != "true":
+        if not (key == "nowplaying" and value == "true"):
             self.sleep()
             return
 
@@ -221,8 +221,8 @@ class Scrobbpy:
 
                 print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
-                # if we get no track image, try the album image instead
-                if self.track.image == "":
+                # if we get no track image, test if there's a album and get its image instead
+                if self.track.image == "" and track_j["track"].get("album", {}) != {}:
                     log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j["track"]["album"]["image"][3]["#text"]
 
