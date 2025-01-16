@@ -29,18 +29,24 @@ if CONST_FILE.exists():
 else:
     username = input("please enter your lastfm username: ")
 
+CONST_CONTENT =f"""\
+# pylint: skip-file
+
+# the following values can be changed
+USR = "{username}"
+DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
+
+# don't change the following values if you want the script to work properly
+LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"
+MB_REC_QRY = "https://musicbrainz.org/ws/2/recording/?query="
+
+CLIENT_ID = "1301054835101270117"
+URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={{USR}}&limit=1&api_key={{LFM_API_KEY}}&format=json'
+URL_TRACK_INFO = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={{LFM_API_KEY}}&username={{USR}}'
+MIN_QRY_INT = 15
+"""
 with open(CONST_FILE, "w", encoding='utf-8') as constants:
-    constants.write("# pylint: skip-file\n\n")
-    constants.write("# the following values can be changed\n")
-    constants.write(f'USR = "{username}"\n')
-    constants.write('DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"\n\n')
-    constants.write("# don't change the following values if you want the script to work properly\n")
-    constants.write('LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"\n')
-    constants.write('MB_REC_QRY = "https://musicbrainz.org/ws/2/recording/?query="\n\n')
-    constants.write('CLIENT_ID = "1301054835101270117"\n')
-    constants.write("URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying=\"true\"&user={USR}&limit=1&api_key={LFM_API_KEY}&format=json'\n")
-    constants.write("URL_TRACK_INFO = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={LFM_API_KEY}&username={USR}'\n")
-    constants.write("MIN_QRY_INT = 15\n")
+    constants.write(CONST_CONTENT)
 
 # create git pre-commit hook file, requires bash to be installed
 res = input("create pre-commit hook file?[y/N]: ")
@@ -51,17 +57,32 @@ if res != "Y" and res != "y":
 
 HOOK_FILE = SCRIPT_DIR / ".git" / "hooks" / "pre-commit"
 
+
+HOOK_CONTENT = """\
+#! /bin/bash
+
+onfail () {
+    echo "ERROR: pre-commit hook failed, $1" && exit 1;
+}
+
+echo "pre-commit checks:"
+echo "- version check:"
+readme_v="$(echo $(sed -nE 's/.*VERSION-([0-9.]+).*/\\1/p' README.md))"
+script_v="$(echo $(sed -nE 's/.*VERSION = \"([0-9.]+)\"/\\1/p' showscrobbling.py))"
+[[ $readme_v != $script_v ]] && onfail "inconsistent versions readme: $readme_v, script: $script_v"
+
+echo "- black check:" && black --force-exclude="setup.py" --check .
+if [ $? -ne 0 ]; then
+    echo "- black formatting:" && black --force-exclude="setup.py" --verbose .
+    onfail "missing files were formatted, please add them"
+fi
+echo "- pylint" && pylint .
+
+echo "All checks passed."
+"""
+
 with open(HOOK_FILE, "w", encoding='utf-8') as hooks:
-    hooks.write("#!/bin/bash\n\n")
-    hooks.write('echo "pre-commit checks:"\n')
-    hooks.write('echo "- running black check:" && black --force-exclude="setup.py" --check --verbose .\n')
-    hooks.write("if [ $? -ne 0 ]; then\n")
-    hooks.write('    echo "- running black:" && black --force-exclude="setup.py" --verbose .\n')
-    hooks.write('    echo "Pre-commit hook failed. Please add the formatted files and try again."\n')
-    hooks.write("    exit 1\n")
-    hooks.write("fi\n")
-    hooks.write('echo "- running pylint" && pylint .\n\n')
-    hooks.write('echo "All checks passed."\n')
+    hooks.write(HOOK_CONTENT)
 
 # make file executable works for linux & mac afaik
 perm = os.stat(HOOK_FILE).st_mode
