@@ -16,6 +16,7 @@ import json
 # external libraries
 import urllib.request
 from pypresence import Presence
+from pypresence import exceptions
 
 # local project files
 import framework.args as parser
@@ -49,7 +50,7 @@ def log(level, content):
 class Track:
     """basic Track object"""
 
-    artist = name = image = url = mbid = length = album = album_mbid = ""
+    artist = name = image = url = mbid = album = album_mbid = ""
 
 
 class Scrobbpy:
@@ -60,6 +61,7 @@ class Scrobbpy:
     sleeping = False
     track = Track
     starttime = 0
+    hovertext = None
 
     # rpc setup
     def __init__(self, client_id):
@@ -177,7 +179,7 @@ class Scrobbpy:
         # in case of new track
         if self.track.url != self.prev_track_url:
             # roughly the start time, +- args.request / 2 (15s)
-            starttime = time.time() - (args.request / 2)
+            self.starttime = time.time() - (args.request / 2)
             self.new_track = True
             self.sleeping = False
             self.prev_track_url = self.track.url
@@ -219,7 +221,7 @@ class Scrobbpy:
                 loved_status = track_j["track"]["userloved"]
                 print_loves = "" if loved_status != "1" else " and loves it 🤍"
 
-                print_hover = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
+                self.hovertext = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
 
                 # if we get no track image, test if there's a album and get its image instead
                 if self.track.image == "" and track_j["track"].get("album", {}) != {}:
@@ -229,9 +231,10 @@ class Scrobbpy:
             except KeyError:
                 # happens when e.g. lastfm returns a track not found
                 log(1, "track info could not be found, please check your scrobbler")
-                print_hover = "Error: could not fetch song data from lastfm"
+                self.hovertext = None
 
-            except Exception as e:
+            except Error as e:
+                self.hovertext = None
                 log(1, str(e) + " occurred in " + traceback.format_exc())
 
         # create new track rpc
@@ -258,28 +261,50 @@ class Scrobbpy:
 
             if self.track.album != "":
                 self.track.album = f" on {self.track.album}"
-            if print_hover is None:
-                print_hover = "error fetching playcount data from lastfm"
+            if self.hovertext is None:
+                self.hovertext = "error fetching playcount data from lastfm"
             self.rpc.clear()
-            self.rpc.update(
-                details=f"listening to {self.track.name}",
-                start=starttime,
-                state=f"by {self.track.artist}{self.track.album}",
-                large_image=self.track.image,
-                large_text=print_hover,
-                buttons=[
-                    {
-                        "label": "song on last.fm",
-                        "url": self.track.url,
-                    },
-                    {
-                        "label": f"{LFM_USR}'s profile"[0:31],
-                        "url": f"https://www.last.fm/user/{LFM_USR}",
-                    },
-                ],
-            )
-            self.new_track = False
-            log(1, f"playing: {self.track.name}, {self.track.artist}, {print_hover}")
+            try:
+                self.rpc.update(
+                    details=f"listening to {self.track.name}",
+                    start=self.starttime,
+                    state=f"by {self.track.artist}{self.track.album}",
+                    large_image=self.track.image,
+                    large_text=self.hovertext,
+                    buttons=[
+                        {
+                            "label": "song on last.fm",
+                            "url": self.track.url,
+                        },
+                        {
+                            "label": f"{LFM_USR}'s profile"[0:31],
+                            "url": f"https://www.last.fm/user/{LFM_USR}",
+                        },
+                    ],
+                )
+                self.new_track = False
+                log(
+                    1,
+                    f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
+                )
+            except exceptions.ServerError:
+                log(
+                    1,
+                    "SERVER ERROR: couldn't update rpc \n\nTraceback:\n\n"
+                    + traceback.format_exc(),
+                )
+            except exceptions.ResponseTimeout:
+                log(
+                    1,
+                    "ERROR: RESPONSE TIMEOUT - no answer from server \n\nTraceback:\n\n"
+                    + traceback.format_exc(),
+                )
+            except exceptions.PipeClosed:
+                log(
+                    1,
+                    "ERROR: PIPE CLOSED: is discord running? \n\nTraceback:\n\n"
+                    + traceback.format_exc(),
+                )
 
 
 # -----------------------------------------------------------
