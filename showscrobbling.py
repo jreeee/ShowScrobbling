@@ -233,9 +233,9 @@ class Scrobbpy:
                 log(1, "track info could not be found, please check your scrobbler")
                 self.hovertext = None
 
-            except Error as e:
-                self.hovertext = None
+            except Exception as e:
                 log(1, str(e) + " occurred in " + traceback.format_exc())
+                self.hovertext = None
 
         # create new track rpc
         if self.new_track:
@@ -274,7 +274,7 @@ class Scrobbpy:
                     buttons=[
                         {
                             "label": "song on last.fm",
-                            "url": self.track.url,
+                            "url": self.prev_track_url,
                         },
                         {
                             "label": f"{LFM_USR}'s profile"[0:31],
