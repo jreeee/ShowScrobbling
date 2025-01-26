@@ -11,7 +11,6 @@ import sys
 import os
 import time
 import traceback
-import json
 
 # external libraries
 import urllib.request
@@ -19,8 +18,10 @@ from pypresence import Presence
 from pypresence import exceptions
 
 # local project files
-import framework.args as parser
-import framework.constants as const
+from framework import args as parser
+from framework import constants as const
+from framework import utils
+from framework import requests
 
 # -----------------------------------------------------------
 
@@ -29,28 +30,15 @@ VERSION = "1.5"
 # get and parse args
 args = parser.parse_args()
 
-# set username
+# setting vars
 if args.user is not None:
     LFM_USR = args.user
 else:
     LFM_USR = const.USR
+if args.loglevel != 1:
+    utils.GLOBAL_LOG_LEVEL = args.loglevel
 
 # -----------------------------------------------------------
-
-
-def log(level, content):
-    """basic logging including priorities"""
-    if level <= args.loglevel:
-        print(content)
-
-
-# -----------------------------------------------------------
-
-
-class Track:
-    """basic Track object"""
-
-    artist = name = image = url = mbid = album = album_mbid = ""
 
 
 class Scrobbpy:
@@ -59,20 +47,20 @@ class Scrobbpy:
     prev_track_url = ""
     new_track = False
     sleeping = False
-    track = Track
+    track = utils.Track
     starttime = 0
     hovertext = None
 
     # rpc setup
     def __init__(self, client_id):
         if self.other_is_running():
-            log(1, "other instance already running.")
+            utils.log(1, "other instance already running.")
             sys.exit(1)
-        log(1, "init rpc")
+        utils.log(1, "init rpc")
         self.rpc = Presence(client_id)
         self.rpc.connect()
         self.rpc_connected = True
-        log(1, f"init finished, running version {VERSION}")
+        utils.log(1, f"init finished, running version {VERSION}")
 
     # rpc cleanup
     def __del__(self):
@@ -81,8 +69,8 @@ class Scrobbpy:
                 self.rpc.clear()
                 self.rpc.close()
         except AttributeError:
-            log(2, "rpc attribute missing")
-        log(1, "rpc object deleted")
+            utils.log(2, "rpc attribute missing")
+        utils.log(1, "rpc object deleted")
 
     def other_is_running(self):
         """check if another instance is already running"""
@@ -99,32 +87,24 @@ class Scrobbpy:
             self.rpc.clear()
             self.sleeping = True
             self.prev_track_url = ""
-            log(1, "no song playing, sleeping")
+            utils.log(1, "no song playing, sleeping")
 
     def req_mb(self, variant):  # todo: save mbids and cycle through when no cover found
         """send a request to MusicBrainz to get the mbid of the track and get coverart"""
         track_mb_j = None
         if self.track.mbid != "" and self.track.album_mbid == "":
-            log(2, "requesting musicbrainz for info")
+            utils.log(2, "requesting musicbrainz for info")
             # https://musicbrainz.org/ws/2/recording/MBID?fmt=json&inc=aliases might help
-            mb_url = f"{const.MB_REC_QRY}{variant}:{self.track.mbid}&fmt=json"
-            log(3, "url: " + mb_url)
-            mb_req = urllib.request.Request(
-                mb_url,
-                data=None,
-                headers={
-                    "User-Agent": f"ShowScrobbing/{VERSION} ( https://github.com/jreeee/ShowScrobbling )"
-                },
-            )
-            data_mb = urllib.request.urlopen(mb_req).read().decode()
-            track_mb_j = json.loads(data_mb)
+            track_mb_j = requests.get_mb_json(variant, self.track.mbid, VERSION)
+            if track_mb_j is None:
+                return
             self.track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
             if self.track.length == 0:
                 # todo link up with the actual length thing
                 self.track.lenth = track_mb_j["recordings"][0]["length"]
             if self.track.album == "":
                 self.track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
-            log(
+            utils.log(
                 3,
                 "release mbid:"
                 + self.track.album_mbid
@@ -135,19 +115,18 @@ class Scrobbpy:
             cover_arch_url = (
                 f"https://coverartarchive.org/release/{self.track.album_mbid}"
             )
-            log(3, "coverurl: " + cover_arch_url)
+            utils.log(3, "coverurl: " + cover_arch_url)
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
+            # todo loop over
             if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
                 self.track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
                 cover_arch_url = (
                     f"https://coverartarchive.org/release/{self.track.album_mbid}"
                 )
-                log(3, "2nd coverurl: " + cover_arch_url)
-            cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            url_decoded = cover_arch_req.read().decode()
-            cover_j = json.loads(url_decoded)
+                utils.log(3, "2nd coverurl: " + cover_arch_url)
+            cover_j = requests.get_json(cover_arch_url)
             self.track.image = cover_j["images"][0]["thumbnails"]["large"]
-            log(3, "3rd img link: " + self.track.image)
+            utils.log(3, "3rd img link: " + self.track.image)
 
         if self.track.image == "":
             self.track.image = args.image
@@ -157,12 +136,8 @@ class Scrobbpy:
         """called every interval to check the current status"""
 
         # query lastfm for the most recent track
-        data_recent_track = (
-            urllib.request.urlopen(const.URL_RECENT_TRACK).read().decode()
-        )
-        recent_track_j = json.loads(data_recent_track)
+        recent_track_j = requests.get_json(const.URL_RECENT_TRACK)
 
-        log(3, json.dumps(recent_track_j, indent=4))
         # get recent track info
         playing = recent_track_j["recenttracks"]["track"][0].get("@attr", {})
         if len(playing) == 0:
@@ -184,21 +159,15 @@ class Scrobbpy:
             self.sleeping = False
             self.prev_track_url = self.track.url
             # clear old track values
-            self.track = Track.__new__(Track)
+            self.track = utils.Track.__new__(utils.Track)
             # split url into artist  and track name to fetch current track as standalone
-            track_url_split = recent_track_j["recenttracks"]["track"][0]["url"].split(
-                "/"
-            )
-            url_artist = track_url_split[4]
-            url_track = track_url_split[6]
-            data_track_url = f"{const.URL_TRACK_INFO}&track={url_track}&artist={url_artist}&format=json"
-            log(3, data_track_url)
+            data_track_url = requests.track_info_url(recent_track_j)
 
             # Try track image, could be empty
             self.track.image = recent_track_j["recenttracks"]["track"][0]["image"][3][
                 "#text"
             ]
-            log(3, "1st img link: " + self.track.image)
+            utils.log(3, "1st img link: " + self.track.image)
             self.track.album = recent_track_j["recenttracks"]["track"][0]["album"][
                 "#text"
             ]
@@ -209,10 +178,7 @@ class Scrobbpy:
             try:
                 # api call to get track for more info since this can result in a
                 # "track not found", everything here is in a try block
-                data_track = urllib.request.urlopen(data_track_url).read().decode()
-                track_j = json.loads(data_track)
-
-                log(3, json.dumps(track_j, indent=4))
+                track_j = requests.get_json(data_track_url)
 
                 # hover text for the rpc
                 user_playcount = track_j["track"]["userplaycount"]
@@ -225,16 +191,18 @@ class Scrobbpy:
 
                 # if we get no track image, test if there's a album and get its image instead
                 if self.track.image == "" and track_j["track"].get("album", {}) != {}:
-                    log(3, "2nd img link: " + self.track.image)
+                    utils.log(3, "2nd img link: " + self.track.image)
                     self.track.image = track_j["track"]["album"]["image"][3]["#text"]
 
             except KeyError:
                 # happens when e.g. lastfm returns a track not found
-                log(1, "track info could not be found, please check your scrobbler")
+                utils.log(
+                    1, "track info could not be found, please check your scrobbler"
+                )
                 self.hovertext = None
 
             except Exception as e:
-                log(1, str(e) + " occurred in " + traceback.format_exc())
+                utils.log(1, str(e) + " occurred in " + traceback.format_exc())
                 self.hovertext = None
 
         # create new track rpc
@@ -251,12 +219,12 @@ class Scrobbpy:
                     self.req_mb("tid")
                     query_worked = True
                 except:
-                    log(2, "musicbrainz tid query failed")
+                    utils.log(2, "musicbrainz tid query failed")
                 if not query_worked:
                     try:
                         self.req_mb("rid")
                     except:
-                        log(1, "musicbrainz query failed")
+                        utils.log(1, "musicbrainz query failed")
                         self.track.image = const.DEFAULT_TRACK_IMAGE
 
             if self.track.album != "":
@@ -283,24 +251,24 @@ class Scrobbpy:
                     ],
                 )
                 self.new_track = False
-                log(
+                utils.log(
                     1,
                     f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
                 )
             except exceptions.ServerError:
-                log(
+                utils.log(
                     1,
                     "SERVER ERROR: couldn't update rpc \n\nTraceback:\n\n"
                     + traceback.format_exc(),
                 )
             except exceptions.ResponseTimeout:
-                log(
+                utils.log(
                     1,
                     "ERROR: RESPONSE TIMEOUT - no answer from server \n\nTraceback:\n\n"
                     + traceback.format_exc(),
                 )
             except exceptions.PipeClosed:
-                log(
+                utils.log(
                     1,
                     "ERROR: PIPE CLOSED: is discord running? \n\nTraceback:\n\n"
                     + traceback.format_exc(),
@@ -318,13 +286,13 @@ def main():
                 try:
                     rpc.update()
                 except Exception as e:
-                    log(1, str(e) + " occurred in " + traceback.format_exc())
-                    log(1, f"trying again in {args.request}s")
+                    utils.log(1, str(e) + " occurred in " + traceback.format_exc())
+                    utils.log(1, f"trying again in {args.request}s")
                 time.sleep(args.request)
     except ConnectionRefusedError:
-        log(1, "connection refused - is discord running?")
+        utils.log(1, "connection refused - is discord running?")
     except KeyboardInterrupt:
-        log(1, "exiting")
+        utils.log(1, "exiting")
         del rpc
         sys.exit(0)
 
