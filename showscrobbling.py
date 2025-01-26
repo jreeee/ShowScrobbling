@@ -44,11 +44,9 @@ if args.loglevel != 1:
 class Scrobbpy:
     """script object"""
 
-    prev_track_url = ""
-    new_track = False
     sleeping = False
     track = utils.Track
-    starttime = 0
+    trackinfo = utils.TrackInfo
     hovertext = None
 
     # rpc setup
@@ -86,7 +84,7 @@ class Scrobbpy:
         if not self.sleeping:
             self.rpc.clear()
             self.sleeping = True
-            self.prev_track_url = ""
+            self.trackinfo.prev_track_url = ""
             utils.log(1, "no song playing, sleeping")
 
     def req_mb(self, variant):  # todo: save mbids and cycle through when no cover found
@@ -152,66 +150,23 @@ class Scrobbpy:
         self.track.url = recent_track_j["recenttracks"]["track"][0]["url"]
 
         # in case of new track
-        if self.track.url != self.prev_track_url:
+        if self.track.url != self.trackinfo.prev_track_url:
             # roughly the start time, +- args.request / 2 (15s)
-            self.starttime = time.time() - (args.request / 2)
-            self.new_track = True
+            starttime = time.time() - (args.request / 2)
+            # set trackinfo to new track
+            self.trackinfo = utils.TrackInfo(starttime, self.track.url, True)
             self.sleeping = False
-            self.prev_track_url = self.track.url
-            # clear old track values
-            self.track = utils.Track.__new__(utils.Track)
-            # split url into artist  and track name to fetch current track as standalone
+            # create a new track object
+            self.track = utils.Track(recent_track_j)
             data_track_url = requests.track_info_url(recent_track_j)
-
-            # Try track image, could be empty
-            self.track.image = recent_track_j["recenttracks"]["track"][0]["image"][3][
-                "#text"
-            ]
-            utils.log(3, "1st img link: " + self.track.image)
-            self.track.album = recent_track_j["recenttracks"]["track"][0]["album"][
-                "#text"
-            ]
-            self.track.album_mbid = recent_track_j["recenttracks"]["track"][0]["album"][
-                "mbid"
-            ]
-
-            try:
-                # api call to get track for more info since this can result in a
-                # "track not found", everything here is in a try block
-                track_j = requests.get_json(data_track_url)
-
-                # hover text for the rpc
-                user_playcount = track_j["track"]["userplaycount"]
-                print_count = "times" if user_playcount != "1" else "time"
-
-                loved_status = track_j["track"]["userloved"]
-                print_loves = "" if loved_status != "1" else " and loves it 🤍"
-
-                self.hovertext = f"{LFM_USR} listened to this track {user_playcount} {print_count}{print_loves}"
-
-                # if we get no track image, test if there's a album and get its image instead
-                if self.track.image == "" and track_j["track"].get("album", {}) != {}:
-                    utils.log(3, "2nd img link: " + self.track.image)
-                    self.track.image = track_j["track"]["album"]["image"][3]["#text"]
-
-            except KeyError:
-                # happens when e.g. lastfm returns a track not found
-                utils.log(
-                    1, "track info could not be found, please check your scrobbler"
-                )
-                self.hovertext = None
-
-            except Exception as e:
-                utils.log(1, str(e) + " occurred in " + traceback.format_exc())
-                self.hovertext = None
+            track_info_j = requests.get_json(data_track_url)
+            self.hovertext = utils.create_hover_text(track_info_j)
+            if self.track.image == "":
+                self.track.image = utils.cover_from_ti_album(track_info_j)
 
         # create new track rpc
-        if self.new_track:
-            self.track.artist = recent_track_j["recenttracks"]["track"][0]["artist"][
-                "#text"
-            ]
-            self.track.name = recent_track_j["recenttracks"]["track"][0]["name"]
-            self.track.mbid = recent_track_j["recenttracks"]["track"][0]["mbid"]
+        if self.trackinfo.new_track:
+            self.trackinfo.new_track = False
 
             if self.track.image == "":
                 query_worked = False
@@ -229,20 +184,18 @@ class Scrobbpy:
 
             if self.track.album != "":
                 self.track.album = f" on {self.track.album}"
-            if self.hovertext is None:
-                self.hovertext = "error fetching playcount data from lastfm"
             self.rpc.clear()
             try:
                 self.rpc.update(
                     details=f"listening to {self.track.name}",
-                    start=self.starttime,
+                    start=self.trackinfo.starttime,
                     state=f"by {self.track.artist}{self.track.album}",
                     large_image=self.track.image,
                     large_text=self.hovertext,
                     buttons=[
                         {
                             "label": "song on last.fm",
-                            "url": self.prev_track_url,
+                            "url": self.trackinfo.prev_track_url,
                         },
                         {
                             "label": f"{LFM_USR}'s profile"[0:31],
@@ -250,7 +203,6 @@ class Scrobbpy:
                         },
                     ],
                 )
-                self.new_track = False
                 utils.log(
                     1,
                     f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",

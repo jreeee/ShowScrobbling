@@ -53,7 +53,7 @@ for linting and formatting the code, the `setup.py` provides a prompt to create 
 
 ## requirements
 
-- python3
+- python3, version 3.8 or later
 - urllib*
 - pypresence*
 
