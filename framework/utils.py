@@ -2,7 +2,11 @@
 util functions and data types
 """
 
+import traceback
+from pypresence import exceptions
+
 from framework import constants as const
+
 
 GLOBAL_LOG_LEVEL = 1
 
@@ -11,6 +15,18 @@ def log(loglevel, content):
     """simple logging"""
     if loglevel <= GLOBAL_LOG_LEVEL:
         print(content)
+
+
+def throw_error(errtype):
+    """prints error message (and traceback)"""
+    match errtype:
+        case exceptions.ServerError:
+            print("\nSERVER ERROR: couldn't update rpc")
+        case exceptions.ResponseTimeout:
+            print("\nTIMEOUT ERROR: no respone in time")
+        case exceptions.PipeClosed:
+            print("\nPIPE ERROR: is Discord running?")
+    log(3, "\n\nTraceback:\n\n" + traceback.format_exc())
 
 
 def create_hover_text(track_info_j):
@@ -28,17 +44,6 @@ def create_hover_text(track_info_j):
         return "error fetching playcount data from lastfm"
 
 
-def cover_from_ti_album(track_info_j):
-    """try to extract the album image from the track info json"""
-    try:
-        url = track_info_j["track"]["album"]["image"][3]["#text"]
-        log(3, "2nd img link: " + url)
-        return url
-    except KeyError:
-        log(3, "2nd img link not found, lfm track info missing")
-        return ""
-
-
 class Track:
     """basic Track object"""
 
@@ -47,7 +52,8 @@ class Track:
 
     def __init__(self, recent_tracks_j):
         recent_track = recent_tracks_j["recenttracks"]["track"][0]
-        self.image = recent_track["image"][3]["#text"]
+        # the lastfm image tends to sometimes be this default gray star thing
+        # self.image = recent_track["image"][3]["#text"]
         self.album = recent_track["album"]["#text"]
         self.album_mbid = recent_track["album"]["mbid"]
         self.artist = recent_track["artist"]["#text"]

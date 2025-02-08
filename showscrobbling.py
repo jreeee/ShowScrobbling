@@ -3,7 +3,7 @@
 """
 ShowScrobbling
 a small-ish python script that uses Pypresence and last.fm (and MusicBrainz)
-to display coverart of your currently scrobbling song in Discord 
+to display coverart of your currently scrobbling song in Discord
 """
 
 # system libraries
@@ -13,9 +13,8 @@ import time
 import traceback
 
 # external libraries
-import urllib.request
 from pypresence import Presence
-from pypresence import exceptions
+from pypresence import exceptions as ex
 
 # local project files
 from framework import args as parser
@@ -25,7 +24,7 @@ from framework import requests
 
 # -----------------------------------------------------------
 
-VERSION = "1.5"
+VERSION = "1.6"
 
 # get and parse args
 args = parser.parse_args()
@@ -87,48 +86,6 @@ class Scrobbpy:
             self.trackinfo.prev_track_url = ""
             utils.log(1, "no song playing, sleeping")
 
-    def req_mb(self, variant):  # todo: save mbids and cycle through when no cover found
-        """send a request to MusicBrainz to get the mbid of the track and get coverart"""
-        track_mb_j = None
-        if self.track.mbid != "" and self.track.album_mbid == "":
-            utils.log(2, "requesting musicbrainz for info")
-            # https://musicbrainz.org/ws/2/recording/MBID?fmt=json&inc=aliases might help
-            track_mb_j = requests.get_mb_json(variant, self.track.mbid, VERSION)
-            if track_mb_j is None:
-                return
-            self.track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
-            if self.track.length == 0:
-                # todo link up with the actual length thing
-                self.track.lenth = track_mb_j["recordings"][0]["length"]
-            if self.track.album == "":
-                self.track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
-            utils.log(
-                3,
-                "release mbid:"
-                + self.track.album_mbid
-                + ", length: "
-                + self.track.length,
-            )
-        if self.track.album_mbid != "" and track_mb_j:
-            cover_arch_url = (
-                f"https://coverartarchive.org/release/{self.track.album_mbid}"
-            )
-            utils.log(3, "coverurl: " + cover_arch_url)
-            cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            # todo loop over
-            if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
-                self.track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
-                cover_arch_url = (
-                    f"https://coverartarchive.org/release/{self.track.album_mbid}"
-                )
-                utils.log(3, "2nd coverurl: " + cover_arch_url)
-            cover_j = requests.get_json(cover_arch_url)
-            self.track.image = cover_j["images"][0]["thumbnails"]["large"]
-            utils.log(3, "3rd img link: " + self.track.image)
-
-        if self.track.image == "":
-            self.track.image = args.image
-
     # anything with _j is a json object
     def update(self):
         """called every interval to check the current status"""
@@ -161,26 +118,11 @@ class Scrobbpy:
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
             self.hovertext = utils.create_hover_text(track_info_j)
-            if self.track.image == "":
-                self.track.image = utils.cover_from_ti_album(track_info_j)
+            requests.get_cover_image(self, track_info_j, VERSION)
 
         # create new track rpc
         if self.trackinfo.new_track:
             self.trackinfo.new_track = False
-
-            if self.track.image == "":
-                query_worked = False
-                try:
-                    self.req_mb("tid")
-                    query_worked = True
-                except:
-                    utils.log(2, "musicbrainz tid query failed")
-                if not query_worked:
-                    try:
-                        self.req_mb("rid")
-                    except:
-                        utils.log(1, "musicbrainz query failed")
-                        self.track.image = const.DEFAULT_TRACK_IMAGE
 
             if self.track.album != "":
                 self.track.album = f" on {self.track.album}"
@@ -207,24 +149,9 @@ class Scrobbpy:
                     1,
                     f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
                 )
-            except exceptions.ServerError:
-                utils.log(
-                    1,
-                    "SERVER ERROR: couldn't update rpc \n\nTraceback:\n\n"
-                    + traceback.format_exc(),
-                )
-            except exceptions.ResponseTimeout:
-                utils.log(
-                    1,
-                    "ERROR: RESPONSE TIMEOUT - no answer from server \n\nTraceback:\n\n"
-                    + traceback.format_exc(),
-                )
-            except exceptions.PipeClosed:
-                utils.log(
-                    1,
-                    "ERROR: PIPE CLOSED: is discord running? \n\nTraceback:\n\n"
-                    + traceback.format_exc(),
-                )
+            # handle exceptions
+            except (ex.ServerError, ex.ResponseTimeout, ex.PipeClosed) as e:
+                utils.throw_error(e)
 
 
 # -----------------------------------------------------------
