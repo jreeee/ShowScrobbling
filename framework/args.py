@@ -10,8 +10,8 @@ def int_min(arg):
     """ensure that the lfm api isn't bombarded with requests"""
     try:
         i = int(arg)
-    except ValueError:
-        raise argparse.ArgumentTypeError("request interval must me int")
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("request interval must me int") from exc
     if int(const.MIN_QRY_INT) > i:
         raise argparse.ArgumentTypeError(
             f"request interval must be at least {const.MIN_QRY_INT}"

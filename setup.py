@@ -22,6 +22,7 @@ if CONST_FILE.exists():
     elif res == "u" or res == "update":
         # get and use the existing username
         import framework.constants
+
         username = framework.constants.USR
     else:
         print("exting")
@@ -29,7 +30,7 @@ if CONST_FILE.exists():
 else:
     username = input("please enter your lastfm username: ")
 
-CONST_CONTENT =f"""\
+CONST_CONTENT = f"""\
 # pylint: skip-file
 
 # the following values can be changed
@@ -45,7 +46,7 @@ URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttrac
 URL_TRACK_INFO = f'http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key={{LFM_API_KEY}}&username={{USR}}'
 MIN_QRY_INT = 15
 """
-with open(CONST_FILE, "w", encoding='utf-8') as constants:
+with open(CONST_FILE, "w", encoding="utf-8") as constants:
     constants.write(CONST_CONTENT)
 
 # create git pre-commit hook file, requires bash to be installed
@@ -81,7 +82,7 @@ echo "- pylint" && pylint .
 echo "All checks passed."
 """
 
-with open(HOOK_FILE, "w", encoding='utf-8') as hooks:
+with open(HOOK_FILE, "w", encoding="utf-8") as hooks:
     hooks.write(HOOK_CONTENT)
 
 # make file executable works for linux & mac afaik
