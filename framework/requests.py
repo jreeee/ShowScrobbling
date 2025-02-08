@@ -3,6 +3,7 @@ functions related to API queries
 """
 
 import urllib.request
+from urllib.error import HTTPError
 import json
 
 from framework import utils
@@ -11,14 +12,17 @@ from framework import constants as const
 
 def get_json(url):
     """return json object for given url"""
-    url_obj = urllib.request.urlopen(url)
-    if url_obj.getcode() == 404:
-        utils.log(2, "no site")
-        return None
-    url_decoded = url_obj.read().decode()
-    json_obj = json.loads(url_decoded)
-    utils.log(3, json.dumps(json_obj, indent=2))
-    return json_obj
+    try:
+        url_obj = urllib.request.urlopen(url)
+        if url_obj.getcode() == 404:
+            utils.log(2, "no site")
+            return None
+        url_decoded = url_obj.read().decode()
+        json_obj = json.loads(url_decoded)
+        utils.log(3, json.dumps(json_obj, indent=2))
+        return json_obj
+    except HTTPError:
+        return ""
 
 
 def get_mb_json(variant, mbid, version):
@@ -74,17 +78,23 @@ def req_mb(self, variant, ver):
     if self.track.album_mbid != "" and self.track.image == "":
         cover_arch_url = f"https://coverartarchive.org/release/{self.track.album_mbid}"
         utils.log(3, "coverurl: " + cover_arch_url)
-        cover_arch_req = urllib.request.urlopen(cover_arch_url)
-        # todo loop over
-        if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
-            self.track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
-            cover_arch_url = (
-                f"https://coverartarchive.org/release/{self.track.album_mbid}"
-            )
-            utils.log(3, "2nd coverurl: " + cover_arch_url)
-        cover_j = get_json(cover_arch_url)
-        self.track.image = cover_j["images"][0]["thumbnails"]["large"]
-        utils.log(3, "3rd img link: " + self.track.image)
+        try:
+            cover_arch_req = urllib.request.urlopen(cover_arch_url)
+            print("test")
+            # todo loop over
+
+            if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
+                self.track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
+                cover_arch_url = (
+                    f"https://coverartarchive.org/release/{self.track.album_mbid}"
+                )
+                utils.log(3, "2nd coverurl: " + cover_arch_url)
+            cover_j = get_json(cover_arch_url)
+            self.track.image = cover_j["images"][0]["thumbnails"]["large"]
+            utils.log(3, "3rd img link: " + self.track.image)
+        except (KeyError, HTTPError):
+            utils.log(3, "key/http error, moving on")
+            self.track.image = ""
 
 
 def get_cover_image(self, track_info_j, ver):
