@@ -59,7 +59,22 @@ class Track:
         self.artist = recent_track["artist"]["#text"]
         self.name = recent_track["name"]
         self.mbid = recent_track["mbid"]
-        log(3, "1st img link: " + self.image)
+
+    def to_cacheable_obj(self):
+        """write track object into cache"""
+        # quit if no mbids are present as we only search with those for consistencys sake
+        if self.album_mbid == "" and self.mbid == "":
+            return
+        # technically we don't need the track mbid, name or album as this is contained in the
+        # manadatory lfm recenttracks query
+        track_j = {
+            "mbid": self.mbid,
+            "album_mbid": self.album_mbid,
+            "title": self.name,
+            "artist": self.artist,
+            "length": self.length,
+            "cover": self.image,
+        }
 
 
 class TrackInfo:

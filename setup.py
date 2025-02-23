@@ -35,6 +35,7 @@ CONST_CONTENT = f"""\
 
 # the following values can be changed
 USR = "{username}"
+CACHE_PATH = "~/.cache/showscrobbling/metadata.json"
 DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
 
 # don't change the following values if you want the script to work properly
