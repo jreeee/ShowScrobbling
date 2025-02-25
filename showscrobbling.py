@@ -21,10 +21,11 @@ from framework import args as parser
 from framework import constants as const
 from framework import utils
 from framework import requests
+from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.6"
+VERSION = "1.7"
 
 # get and parse args
 args = parser.parse_args()
@@ -47,6 +48,7 @@ class Scrobbpy:
     track = utils.Track
     trackinfo = utils.TrackInfo
     hovertext = None
+    progcache: cache.Cache
 
     # rpc setup
     def __init__(self, client_id):
@@ -58,6 +60,10 @@ class Scrobbpy:
         self.rpc.connect()
         self.rpc_connected = True
         utils.log(1, f"init finished, running version {VERSION}")
+        # TODO improve / expand to local paths
+        fp = os.path.expanduser(args.cache_path)
+        utils.log(3, f"cache file @ {fp}")
+        self.progcache = cache.Cache(fp)
 
     # rpc cleanup
     def __del__(self):
@@ -114,11 +120,16 @@ class Scrobbpy:
             self.trackinfo = utils.TrackInfo(starttime, self.track.url, True)
             self.sleeping = False
             # create a new track object
-            self.track = utils.Track(recent_track_j)
+            self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)
+            # query lfm for playcount and userloved
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
             self.hovertext = utils.create_hover_text(track_info_j)
-            requests.get_cover_image(self, track_info_j, VERSION)
+            # get remaining data from cache / requests
+            self.track = self.progcache.get_metadata(self.track, track_info_j, VERSION)
+            if self.track.image == "fallback":
+                self.track.image = const.DEFAULT_TRACK_IMAGE
+                utils.log(3, f"using default track image {self.track.image}")
 
         # create new track rpc
         if self.trackinfo.new_track:

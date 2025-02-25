@@ -51,4 +51,17 @@ def parse_args():
         default=30,
         help="interval in seconds to request lastfm api for most recent track, default 30",
     )
+    parser.add_argument(
+        "-c",
+        "--cache-path",
+        nargs="?",
+        default=const.CACHE_PATH,
+        help="file for track metada read & write",
+    )
+    parser.add_argument(
+        "-E",
+        "--enable-lfm-track-img",
+        action="store_true",
+        help="enable the use of the default lastfm track image. disabled by default",
+    )
     return parser.parse_args()

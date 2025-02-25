@@ -50,16 +50,17 @@ class Track:
     artist = name = image = url = mbid = album = album_mbid = ""
     length = 0
 
-    def __init__(self, recent_tracks_j):
+    def __init__(self, recent_tracks_j, using_lfm_track_img=False):
         recent_track = recent_tracks_j["recenttracks"]["track"][0]
         # the lastfm image tends to sometimes be this default gray star thing
-        # self.image = recent_track["image"][3]["#text"]
+        if using_lfm_track_img:
+            self.image = recent_track["image"][3]["#text"]
+            log(3, f"1st img link: {self.image}")
         self.album = recent_track["album"]["#text"]
         self.album_mbid = recent_track["album"]["mbid"]
         self.artist = recent_track["artist"]["#text"]
         self.name = recent_track["name"]
         self.mbid = recent_track["mbid"]
-        log(3, "1st img link: " + self.image)
 
 
 class TrackInfo:
