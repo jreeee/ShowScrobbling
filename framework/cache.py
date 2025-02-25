@@ -1,3 +1,7 @@
+"""
+caching to let the MB API have a breather
+"""
+
 import os
 import json
 
@@ -6,6 +10,8 @@ from framework import requests
 
 
 class Cache:
+    """cache object to store track metadata"""
+
     cache = {}
     cache_fp = ""
 
@@ -21,10 +27,13 @@ class Cache:
             self.write_cache()
 
     def write_cache(self):
+        """dump data to file"""
         with open(self.cache_fp, "w+", encoding="utf-8") as f:
             f.write(json.dumps(self.cache, indent=4))
 
     def get_metadata(self, track: utils.Track, track_info_j, VERSION) -> utils.Track:
+        """try to get data from cache, else request and store"""
+
         # keygen for searching
         mbid_key = False
         if track.mbid != "":
@@ -44,13 +53,13 @@ class Cache:
                     "artist": new_track.artist,
                     "album_mbid": new_track.album_mbid,
                     "album": new_track.album,
-                    "length": new_track.length,
+                    "length": int(new_track.length),
                     "cover": new_track.image,
                 }
             else:
                 self.cache[key] = {
                     "album": new_track.album,
-                    "length": new_track.length,
+                    "length": int(new_track.length),
                     "cover": new_track.image,
                 }
             utils.log(3, json.dumps(self.cache[key]))
@@ -66,7 +75,7 @@ class Cache:
             updated_track.album_mbid = self.cache[key]["album_mbid"]
         # values present for both keys
         updated_track.album = self.cache[key]["album"]
-        updated_track.length = self.cache[key]["length"]
+        updated_track.length = int(self.cache[key]["length"])
         updated_track.image = self.cache[key]["cover"]
         utils.log(3, json.dumps(self.cache[key]))
         return updated_track

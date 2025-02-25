@@ -25,7 +25,7 @@ from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.6"
+VERSION = "1.7"
 
 # get and parse args
 args = parser.parse_args()
@@ -60,7 +60,9 @@ class Scrobbpy:
         self.rpc.connect()
         self.rpc_connected = True
         utils.log(1, f"init finished, running version {VERSION}")
-        fp = os.path.expanduser(const.CACHE_PATH)
+        # TODO improve / expand to local paths
+        fp = os.path.expanduser(args.cache_path)
+        utils.log(3, f"cache file @ {fp}")
         self.progcache = cache.Cache(fp)
 
     # rpc cleanup
@@ -118,7 +120,7 @@ class Scrobbpy:
             self.trackinfo = utils.TrackInfo(starttime, self.track.url, True)
             self.sleeping = False
             # create a new track object
-            self.track = utils.Track(recent_track_j)
+            self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)
             # query lfm for playcount and userloved
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)

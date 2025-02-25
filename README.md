@@ -1,5 +1,5 @@
 # ShowScrobbling
-![Version Badge](https://img.shields.io/badge/VERSION-1.6-white?style=for-the-badge)
+![Version Badge](https://img.shields.io/badge/VERSION-1.7-white?style=for-the-badge)
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -12,11 +12,11 @@ it checks your lastfm profile for a currently playing track and displays it on d
 
 ### goal
 
-showscrobbling aims to be simple, lightweight, cross-platform and easy to adapt to fit your needs (if you know a bit of python that is)
+showscrobbling aims to be simple, lightweight and cross-platform
 
 ### why?
 
-i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/) or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change.
+i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/), or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change. there are a couple of similar projects out there TODO which, but they weren't as straightforward as i wanted, so i made my own.
 
 ### setup
 #### cli:
@@ -47,6 +47,10 @@ when another discord user clicks on your activity, they'll have two buttons, lin
 
 shoscro will check every thrity seconds to see if the currently playing track has changed and update accordingly
 
+### caching
+showscrobbling uses caching to locally store track metadata. by default data is stored in `~/.cache/showscrobbling/metadata.json`. you can change this folder in the `constants.py` or using [arguments](#usage) to wherever you have r/w permissions, just make sure to add the tilde at the start for paths relative to your user or stick to absolute paths, otherwise python won't resolve the path correctly and the script won't work.
+
+
 ### development
 
 for linting and formatting the code, the `setup.py` provides a prompt to create a pre-commit hook. this uses `black` for formatting and `pylint` for linting. currently only the formatting has to pass for the commit to be valid and i use pylint more as reference.
@@ -70,3 +74,11 @@ args | default | desc
 -l \| --loglevel | 1 | program generated output, 0: silent -> 3: debug, default 1
 -i \| --image | [this](https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif) | default image link if there's none for the track
 -r \| --request | 30 | interval in seconds to request the lastfm api for most recent track
+-c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/cache/metadata.json"`
+-E \| --enable-lfm-track-image | - | enable the use of the lfm track image. this is different from the lfm album image in that it is just a grey star sometimes ([see issue #15](https://github.com/jreeee/ShowScrobbling/issues/15)). because of that this showscrobbling chooses to ignore this imagelink by default
+
+## similar projects
+- Gust4Oliveira's [Last.fm Discord Rich Presence](https://github.com/Gust4Oliveira/Last.fm-Discord-Rich-Presence)
+- gahtv's [Last.fm-Discord-RPC](https://github.com/gahtv/Last.fm-Discord-RPC)
+- dimden's [LastFMRichPresence](https://github.com/dimdenGD/LastFMRichPresence)
+- androidWG's [Discord.fm](https://github.com/androidWG/Discord.fm)

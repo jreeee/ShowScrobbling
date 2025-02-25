@@ -10,20 +10,30 @@ from pathlib import Path
 # get absolute path to the framework dir to create the constants file
 SCRIPT_DIR = Path(__file__).resolve().parent
 
+#######################################################
 # create constants.py
+#######################################################
+
 CONST_FILE = SCRIPT_DIR / "framework" / "constants.py"
 
 username = ""
+cache_path = "~/.cache/showscrobbling/metadata.json"
+default_img = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
 
 if CONST_FILE.exists():
     res = input("const file already present. [o]verride / [u]pdate / [e]xit: ")
     if res == "o" or res == "override":
         username = input("please enter your lastfm username: ")
     elif res == "u" or res == "update":
-        # get and use the existing username
+        # get and use the existing user defined vars
         import framework.constants
 
         username = framework.constants.USR
+        default_img = framework.constants.DEFAULT_TRACK_IMAGE
+        try:
+            cache_path = framework.constants.CACHE_PATH
+        except AttributeError:
+            print(f"no cache path found, using the default one")
     else:
         print("exting")
         sys.exit(0)
@@ -35,8 +45,8 @@ CONST_CONTENT = f"""\
 
 # the following values can be changed
 USR = "{username}"
-CACHE_PATH = "~/.cache/showscrobbling/metadata.json"
-DEFAULT_TRACK_IMAGE = "https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif"
+CACHE_PATH = "{cache_path}"
+DEFAULT_TRACK_IMAGE = "{default_img}"
 
 # don't change the following values if you want the script to work properly
 LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"
@@ -50,14 +60,21 @@ MIN_QRY_INT = 15
 with open(CONST_FILE, "w", encoding="utf-8") as constants:
     constants.write(CONST_CONTENT)
 
+#######################################################
 # create git pre-commit hook file, requires bash to be installed
+#######################################################
+
+HOOK_FILE = SCRIPT_DIR / ".git" / "hooks" / "pre-commit"
+
+if HOOK_FILE.exists():
+    print("hook exists, exiting")
+    sys.exit(0)
+
 res = input("create pre-commit hook file?[y/N]: ")
 
 if res != "Y" and res != "y":
-    print("setup complete, exting")
+    print("setup complete, exiting")
     sys.exit(0)
-
-HOOK_FILE = SCRIPT_DIR / ".git" / "hooks" / "pre-commit"
 
 
 HOOK_CONTENT = """\

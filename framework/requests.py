@@ -64,7 +64,7 @@ def req_mb(track, variant, ver) -> utils.Track:
         track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
         if track.length == 0:
             # todo link up with the actual length thing
-            track.lenth = track_mb_j["recordings"][0]["length"]
+            track.lenth = int(track_mb_j["recordings"][0]["length"])
         if track.album == "":
             track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
         utils.log(
@@ -101,12 +101,14 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # lastfm album cover based on track_info
     try:
         track.length = track_info_j["track"]["duration"]
-        track.image = track_info_j["track"]["album"]["image"][3]["#text"]
+        if track.image == "":
+            track.image = track_info_j["track"]["album"]["image"][3]["#text"]
         if track.image != "":
             utils.log(3, "2nd img link: " + track.image)
             return track
     except KeyError:
         utils.log(3, "2nd img link not found, lfm track info missing")
+
     # musicbrainz album artwork based on track_info
     try:
         updatedtrack = req_mb(track, "tid", ver)
@@ -117,8 +119,10 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
         except IndexError:
             utils.log(3, "musicbrainz rid query failed")
             utils.log(2, "musicbrainz query failed")
+
     if updatedtrack is not None:
         track = updatedtrack
-    if track.image == "":
+    # edge cases that would prevent pypresence from updating
+    if track.image == "" or len(track.image) >= 256:
         track.image = "fallback"
     return track
