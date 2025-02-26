@@ -12,8 +12,17 @@ import os
 import time
 import traceback
 
+import json
+
+import pypresence
+
 # external libraries
 from pypresence import Presence
+
+try:
+    from pypresence import ActivityType
+except ImportError:
+    ActivityType = None
 from pypresence import exceptions as ex
 
 # local project files
@@ -124,45 +133,62 @@ class Scrobbpy:
             # query lfm for playcount and userloved
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
-            self.hovertext = utils.create_hover_text(track_info_j)
             # get remaining data from cache / requests
             self.track = self.progcache.get_metadata(self.track, track_info_j, VERSION)
             if self.track.image == "fallback":
                 self.track.image = const.DEFAULT_TRACK_IMAGE
                 utils.log(3, f"using default track image {self.track.image}")
 
-        # create new track rpc
-        if self.trackinfo.new_track:
-            self.trackinfo.new_track = False
+        if not self.trackinfo.new_track:
+            return
 
-            if self.track.album != "":
-                self.track.album = f" on {self.track.album}"
-            self.rpc.clear()
-            try:
-                self.rpc.update(
-                    details=f"listening to {self.track.name}",
-                    start=self.trackinfo.starttime,
-                    state=f"by {self.track.artist}{self.track.album}",
-                    large_image=self.track.image,
-                    large_text=self.hovertext,
-                    buttons=[
-                        {
-                            "label": "song on last.fm",
-                            "url": self.trackinfo.prev_track_url,
-                        },
-                        {
-                            "label": f"{LFM_USR}'s profile"[0:31],
-                            "url": f"https://www.last.fm/user/{LFM_USR}",
-                        },
-                    ],
-                )
-                utils.log(
-                    1,
-                    f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
-                )
-            # handle exceptions
-            except (ex.ServerError, ex.ResponseTimeout, ex.PipeClosed) as e:
-                utils.throw_error(e)
+        # create new track rpc
+        self.trackinfo.new_track = False
+
+        # store args in dict to only include valid ones:
+        # TODO buttons: what happens if the lfm link is invalid?
+        update_args = {
+            "details": utils.create_detail_text(self.track, ActivityType),
+            "start": self.trackinfo.starttime,
+            "state": utils.create_state_text(self.track),
+            "large_image": self.track.image,
+            "large_text": utils.create_hover_text(
+                self.track, track_info_j, ActivityType
+            ),
+            "small_text": "scrobbling songs",  # does this even do anything?
+            "buttons": [
+                {
+                    "label": "song on last.fm",
+                    "url": self.trackinfo.prev_track_url,
+                },
+                {
+                    "label": f"{LFM_USR}'s profile"[0:31],
+                    "url": f"https://www.last.fm/user/{LFM_USR}",
+                },
+            ],
+        }
+
+        if ActivityType is not None:
+            update_args["small_text"] = f"{self.track.name} - {self.track.artist}"
+
+        if int(self.track.length) != 0:
+            update_args["end"] = (
+                int(self.trackinfo.starttime) + int(self.track.length) / 1000
+            )
+
+        self.rpc.clear()
+        try:
+            if ActivityType is not None:
+                self.rpc.update(activity_type=ActivityType.LISTENING, **update_args)
+            else:
+                self.rpc.update(**update_args)
+            utils.log(
+                1,
+                f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
+            )
+        # handle exceptions
+        except (ex.ServerError, ex.ResponseTimeout, ex.PipeClosed) as e:
+            utils.throw_error(e)
 
 
 # -----------------------------------------------------------

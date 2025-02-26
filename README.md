@@ -16,7 +16,7 @@ showscrobbling aims to be simple, lightweight and cross-platform
 
 ### why?
 
-i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/), or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change. there are a couple of similar projects out there TODO which, but they weren't as straightforward as i wanted, so i made my own.
+i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/), or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change. there are a couple of similar projects out there, see the [similar projects list](#similar-projects), but they weren't as straightforward as i wanted, so i made my own.
 
 ### setup
 #### cli:
