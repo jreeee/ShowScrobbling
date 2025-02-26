@@ -12,18 +12,17 @@ import os
 import time
 import traceback
 
-import json
-
-import pypresence
-
 # external libraries
 from pypresence import Presence
+from pypresence import exceptions as ex
 
+# check pypresence ActivityType support
 try:
     from pypresence import ActivityType
+
+    ACTIVITY_TYPE_SUPPORT = True
 except ImportError:
-    ActivityType = None
-from pypresence import exceptions as ex
+    ACTIVITY_TYPE_SUPPORT = False
 
 # local project files
 from framework import args as parser
@@ -148,13 +147,11 @@ class Scrobbpy:
         # store args in dict to only include valid ones:
         # TODO buttons: what happens if the lfm link is invalid?
         update_args = {
-            "details": utils.create_detail_text(self.track, ActivityType),
+            "details": utils.create_detail_text(self.track, ACTIVITY_TYPE_SUPPORT),
             "start": self.trackinfo.starttime,
             "state": utils.create_state_text(self.track),
             "large_image": self.track.image,
-            "large_text": utils.create_hover_text(
-                self.track, track_info_j, ActivityType
-            ),
+            "large_text": utils.create_hover_text(track_info_j, ACTIVITY_TYPE_SUPPORT),
             "small_text": "scrobbling songs",  # does this even do anything?
             "buttons": [
                 {
@@ -168,9 +165,6 @@ class Scrobbpy:
             ],
         }
 
-        if ActivityType is not None:
-            update_args["small_text"] = f"{self.track.name} - {self.track.artist}"
-
         if int(self.track.length) != 0:
             update_args["end"] = (
                 int(self.trackinfo.starttime) + int(self.track.length) / 1000
@@ -178,7 +172,7 @@ class Scrobbpy:
 
         self.rpc.clear()
         try:
-            if ActivityType is not None:
+            if ACTIVITY_TYPE_SUPPORT:
                 self.rpc.update(activity_type=ActivityType.LISTENING, **update_args)
             else:
                 self.rpc.update(**update_args)

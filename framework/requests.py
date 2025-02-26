@@ -63,7 +63,6 @@ def req_mb(track, variant, ver) -> utils.Track:
             return track
         track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
         if track.length == 0:
-            # todo link up with the actual length thing
             track.lenth = int(track_mb_j["recordings"][0]["length"])
         if track.album == "":
             track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
@@ -78,7 +77,7 @@ def req_mb(track, variant, ver) -> utils.Track:
         try:
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
             print("test")
-            # todo loop over
+            # TODO loop over
 
             if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
                 track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]

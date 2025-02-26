@@ -29,22 +29,24 @@ def throw_error(errtype):
     log(3, "\n\nTraceback:\n\n" + traceback.format_exc())
 
 
-def create_detail_text(track, ActivityType) -> str:
-    if ActivityType is None:
+def create_detail_text(track, activity_type) -> str:
+    """detail text for the rpc"""
+    # old rpc
+    if activity_type is None:
         return f"listening to {track.name}"
-    else:
-        return track.name
+    # new rpc
+    return track.name
 
 
 def create_state_text(track) -> str:
-    """detail text for the rpc"""
+    """state text for the rpc"""
     album = track.album
     if track.album != "":
         album = f" on {track.album}"
     return f"by {track.artist}{album}"
 
 
-def create_hover_text(track, track_info_j, ActivityType) -> str:
+def create_hover_text(track_info_j, activity_type) -> str:
     """hover text for the rpc"""
     try:
         user_playcount = track_info_j["track"]["userplaycount"]
@@ -52,15 +54,15 @@ def create_hover_text(track, track_info_j, ActivityType) -> str:
     except KeyError:
         log(2, "lastfm track info query failed")
         return "error fetching playcount data from lastfm"
-
-    if ActivityType is None:
+    # old rpc
+    if activity_type is None:
         print_count = "times" if user_playcount != "1" else "time"
         print_loves = "" if loved_status != "1" else " and loves it 🤍"
         return f"{const.USR} listened to this track {user_playcount} {print_count}{print_loves}"
-    else:
-        count = f"scrobbles: {user_playcount}"
-        loved = "" if loved_status != "1" else " - loved track 🤍"
-        return f"{count}{loved}"
+    # new rpc
+    count = f"scrobbles: {user_playcount}"
+    loved = "" if loved_status != "1" else " - loved track 🤍"
+    return f"{count}{loved}"
 
 
 class Track:
