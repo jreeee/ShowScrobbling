@@ -1,5 +1,5 @@
 # ShowScrobbling
-![Version Badge](https://img.shields.io/badge/VERSION-1.7-white?style=for-the-badge)
+![Version Badge](https://img.shields.io/badge/VERSION-1.8-white?style=for-the-badge)
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -57,11 +57,11 @@ for linting and formatting the code, the `setup.py` provides a prompt to create 
 
 ## requirements
 
-- python3, version 3.8 or later
+- python3.8 or later
 - urllib*
 - pypresence*
 
-*also present in the ```requirements.txt```
+*also present in the `requirements.txt`
 
 (also your lastfm username and a working internet connection)
 

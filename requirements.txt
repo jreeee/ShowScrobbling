@@ -1,2 +1,2 @@
 urllib3
-https://github.com/qwertyquerty/pypresence/archive/master.zip
+pypresence>=3.4.0

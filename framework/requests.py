@@ -76,7 +76,6 @@ def req_mb(track, variant, ver) -> utils.Track:
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            print("test")
             # TODO loop over
 
             if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):

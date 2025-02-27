@@ -33,7 +33,7 @@ from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.7"
+VERSION = "1.8"
 
 # get and parse args
 args = parser.parse_args()
@@ -55,7 +55,6 @@ class Scrobbpy:
     sleeping = False
     track = utils.Track
     trackinfo = utils.TrackInfo
-    hovertext = None
     progcache: cache.Cache
 
     # rpc setup
@@ -178,7 +177,7 @@ class Scrobbpy:
                 self.rpc.update(**update_args)
             utils.log(
                 1,
-                f"playing: {self.track.name}, {self.track.artist}, {self.hovertext}",
+                f"playing: {self.track.name}, {self.track.artist}, {update_args["large_text"]}",
             )
         # handle exceptions
         except (ex.ServerError, ex.ResponseTimeout, ex.PipeClosed) as e:
