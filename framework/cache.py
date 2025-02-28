@@ -77,5 +77,6 @@ class Cache:
         updated_track.album = self.cache[key]["album"]
         updated_track.length = int(self.cache[key]["length"])
         updated_track.image = self.cache[key]["cover"]
+        updated_track.img_link_nr = 0
         utils.log(3, json.dumps(self.cache[key]))
         return updated_track

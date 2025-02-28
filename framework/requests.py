@@ -76,7 +76,7 @@ def req_mb(track, variant, ver) -> utils.Track:
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            # TODO loop over
+            # TODO loop over & look into releases for coverart
 
             if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
                 track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
@@ -102,6 +102,7 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
         if track.image == "":
             track.image = track_info_j["track"]["album"]["image"][3]["#text"]
         if track.image != "":
+            track.img_link_nr = 2
             utils.log(3, "2nd img link: " + track.image)
             return track
     except KeyError:
@@ -110,10 +111,12 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # musicbrainz album artwork based on track_info
     try:
         updatedtrack = req_mb(track, "tid", ver)
+        updatedtrack.img_link_nr = 3
     except IndexError:
         utils.log(3, "musicbrainz tid query failed")
         try:
             updatedtrack = req_mb(track, "rid", ver)
+            updatedtrack.img_link_nr = 4
         except IndexError:
             utils.log(3, "musicbrainz rid query failed")
             utils.log(2, "musicbrainz query failed")
@@ -123,4 +126,5 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # edge cases that would prevent pypresence from updating
     if track.image == "" or len(track.image) >= 256:
         track.image = "fallback"
+        track.img_link_nr = 0
     return track

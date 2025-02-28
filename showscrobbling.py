@@ -52,9 +52,8 @@ if args.loglevel != 1:
 class Scrobbpy:
     """script object"""
 
-    sleeping = False
     track = utils.Track
-    trackinfo = utils.TrackInfo
+    rpc_state = utils.RpcState
     progcache: cache.Cache
 
     # rpc setup
@@ -66,6 +65,7 @@ class Scrobbpy:
         self.rpc = Presence(client_id)
         self.rpc.connect()
         self.rpc_connected = True
+        self.rpc_state = utils.RpcState()
         utils.log(1, f"init finished, running version {VERSION}")
         # TODO improve / expand to local paths
         fp = os.path.expanduser(args.cache_path)
@@ -93,10 +93,9 @@ class Scrobbpy:
     def sleep(self):
         """zzzzzzzzz"""
         # all of the following things need to be set just once for a given sleep period
-        if not self.sleeping:
+        if not self.rpc_state.sleeping:
             self.rpc.clear()
-            self.sleeping = True
-            self.trackinfo.prev_track_url = ""
+            self.rpc_state.sleeping = True
             utils.log(1, "no song playing, sleeping")
 
     # anything with _j is a json object
@@ -117,18 +116,17 @@ class Scrobbpy:
             self.sleep()
             return
 
-        self.track.url = recent_track_j["recenttracks"]["track"][0]["url"]
+        new_url = recent_track_j["recenttracks"]["track"][0]["url"]
 
         # in case of new track
-        if self.track.url != self.trackinfo.prev_track_url:
-            # roughly the start time, +- args.request / 2 (15s)
-            starttime = time.time() - (args.request / 2)
-            # set trackinfo to new track
-            self.trackinfo = utils.TrackInfo(starttime, self.track.url, True)
-            self.sleeping = False
-            # create a new track object
+        if new_url != self.track.url:
+            # update states
+            utils.log(3, args.request)
+            self.rpc_state.update(args.request)
+            # create new track object
             self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)
-            # query lfm for playcount and userloved
+            self.track.url = new_url
+            # query lfm for track info
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
             # get remaining data from cache / requests
@@ -137,25 +135,27 @@ class Scrobbpy:
                 self.track.image = const.DEFAULT_TRACK_IMAGE
                 utils.log(3, f"using default track image {self.track.image}")
 
-        if not self.trackinfo.new_track:
+        if not self.rpc_state.new_track:
             return
 
         # create new track rpc
-        self.trackinfo.new_track = False
+        self.rpc_state.new_track = False
 
         # store args in dict to only include valid ones:
         # TODO buttons: what happens if the lfm link is invalid?
         update_args = {
             "details": utils.create_detail_text(self.track, ACTIVITY_TYPE_SUPPORT),
-            "start": self.trackinfo.starttime,
+            "start": self.rpc_state.start_time,
             "state": utils.create_state_text(self.track),
             "large_image": self.track.image,
-            "large_text": utils.create_hover_text(track_info_j, ACTIVITY_TYPE_SUPPORT),
+            "large_text": utils.create_hover_text(
+                track_info_j, self.track, ACTIVITY_TYPE_SUPPORT
+            ),
             "small_text": "scrobbling songs",  # does this even do anything?
             "buttons": [
                 {
                     "label": "song on last.fm",
-                    "url": self.trackinfo.prev_track_url,
+                    "url": self.track.url,
                 },
                 {
                     "label": f"{LFM_USR}'s profile"[0:31],
@@ -166,7 +166,7 @@ class Scrobbpy:
 
         if int(self.track.length) != 0:
             update_args["end"] = (
-                int(self.trackinfo.starttime) + int(self.track.length) / 1000
+                int(self.rpc_state.start_time) + int(self.track.length) / 1000
             )
 
         self.rpc.clear()
@@ -175,10 +175,10 @@ class Scrobbpy:
                 self.rpc.update(activity_type=ActivityType.LISTENING, **update_args)
             else:
                 self.rpc.update(**update_args)
-            utils.log(
-                1,
-                f"playing: {self.track.name}, {self.track.artist}, {update_args["large_text"]}",
-            )
+            info = f"▶️ {self.track.name}, {self.track.artist}, {self.track.listens}"
+            if utils.GLOBAL_LOG_LEVEL > 1:
+                info = f"{info}, img: {self.track.img_link_nr}"
+            utils.log(1, info)
         # handle exceptions
         except (ex.ServerError, ex.ResponseTimeout, ex.PipeClosed) as e:
             utils.throw_error(e)
