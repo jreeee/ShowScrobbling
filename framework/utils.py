@@ -54,6 +54,7 @@ def create_hover_text(track_info_j, track, activity_type_support) -> str:
         loved_status = track_info_j["track"]["userloved"]
     except KeyError:
         log(2, "lastfm track info query failed")
+        track.listens = "no lfm page"
         return "error fetching playcount data from lastfm"
 
     add_s = "s" if user_playcount != "1" else ""

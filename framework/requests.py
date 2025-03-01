@@ -126,5 +126,5 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # edge cases that would prevent pypresence from updating
     if track.image == "" or len(track.image) >= 256:
         track.image = "fallback"
-        track.img_link_nr = 0
+        track.img_link_nr = -1
     return track
