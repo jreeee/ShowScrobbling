@@ -95,7 +95,7 @@ if [ $? -ne 0 ]; then
     echo "- black formatting:" && black --force-exclude="setup.py" --verbose .
     onfail "missing files were formatted, please add them"
 fi
-echo "- pylint" && pylint .
+echo "- pylint" && pylint . --ignore=".venv"
 
 echo "All checks passed."
 """

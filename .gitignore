@@ -1,3 +1,4 @@
 framework/__pycache__/
 framework/constants.py
 cache/
+.venv/

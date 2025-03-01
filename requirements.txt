@@ -1,2 +1,2 @@
 urllib3
-pypresence==4.3.0
+pypresence>=3.4.0

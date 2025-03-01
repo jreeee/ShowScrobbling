@@ -1,5 +1,5 @@
 # ShowScrobbling
-![Version Badge](https://img.shields.io/badge/VERSION-1.7-white?style=for-the-badge)
+![Version Badge](https://img.shields.io/badge/VERSION-1.8-white?style=for-the-badge)
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -16,7 +16,7 @@ showscrobbling aims to be simple, lightweight and cross-platform
 
 ### why?
 
-i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/), or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change. there are a couple of similar projects out there TODO which, but they weren't as straightforward as i wanted, so i made my own.
+i usually listen to music via youtube using [Web Scrobbler](https://web-scrobbler.com/), or local music players like rhythmbox. this means, that i don't have a cool discord rpc to show off my _amazing_ music taste like those spotify peeps, which i wanted to change. there are a couple of similar projects out there, see the [similar projects list](#similar-projects), but they weren't as straightforward as i wanted, so i made my own.
 
 ### setup
 #### cli:
@@ -57,11 +57,11 @@ for linting and formatting the code, the `setup.py` provides a prompt to create 
 
 ## requirements
 
-- python3, version 3.8 or later
+- python3.8 or later
 - urllib*
 - pypresence*
 
-*also present in the ```requirements.txt```
+*also present in the `requirements.txt`
 
 (also your lastfm username and a working internet connection)
 
