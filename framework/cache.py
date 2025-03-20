@@ -31,7 +31,7 @@ class Cache:
         with open(self.cache_fp, "w+", encoding="utf-8") as f:
             f.write(json.dumps(self.cache, indent=4))
 
-    def get_metadata(self, track: utils.Track, track_info_j, VERSION) -> utils.Track:
+    def get_metadata(self, track: utils.Track, track_info_j, ver) -> utils.Track:
         """try to get data from cache, else request and store"""
 
         # keygen for searching
@@ -45,7 +45,7 @@ class Cache:
         # searching for song & writing to cache
         if key not in self.cache.keys():
             utils.log(2, "not found in cache, querying for track info")
-            new_track = requests.get_cover_image(track, track_info_j, VERSION)
+            new_track = requests.get_cover_image(track, track_info_j, ver)
             utils.log(2, "got track info")
             if mbid_key:
                 self.cache[key] = {
@@ -77,5 +77,6 @@ class Cache:
         updated_track.album = self.cache[key]["album"]
         updated_track.length = int(self.cache[key]["length"])
         updated_track.image = self.cache[key]["cover"]
+        updated_track.img_link_nr = 0
         utils.log(3, json.dumps(self.cache[key]))
         return updated_track
