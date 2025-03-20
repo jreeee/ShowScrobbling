@@ -4,7 +4,11 @@ util functions and data types
 
 import time
 import traceback
-from pypresence import exceptions
+
+try:
+    from pypresence import exceptions
+except ModuleNotFoundError:
+    from lynxpresence import exceptions
 
 from framework import constants as const
 

@@ -13,16 +13,24 @@ import time
 import traceback
 
 # external libraries
-from pypresence import Presence
-from pypresence import exceptions as ex
+
 
 # check pypresence ActivityType support
 try:
+    from pypresence import Presence
+    from pypresence import exceptions as ex
     from pypresence import ActivityType
 
     ACTIVITY_TYPE_SUPPORT = True
-except ImportError:
-    ACTIVITY_TYPE_SUPPORT = False
+except ImportError or ModuleNotFoundError:
+    try:
+        from lynxpresence import Presence
+        from lynxpresence import exceptions as ex
+        from lynxpresence import ActivityType
+
+        ACTIVITY_TYPE_SUPPORT = True
+    except ModuleNotFoundError:
+        ACTIVITY_TYPE_SUPPORT = False
 
 # local project files
 from framework import args as parser

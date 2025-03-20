@@ -20,9 +20,9 @@ i usually listen to music via youtube using [Web Scrobbler](https://web-scrobble
 
 ### setup
 #### commandline:
-`# git clone https://github.com/jreeee/ShowScrobbling`
+`# git clone https://github.com/jreeee/showscrobbling`
 
-`# cd ShowScrobbling  && ./setup.py`
+`# cd showscrobbling  && ./setup.py`
 
 `# pip install -r requirements.txt` (or use your packet manager to install the [reqs](#requirements))
 #### graphical:
@@ -60,13 +60,14 @@ for linting and formatting the code, the `setup.py` provides a prompt to create 
 
 ## requirements
 
-- python3.8 or newer
+- python 3.9 or newer
 - urllib $^{1}$
 - pypresence $^{1,2}$
+- (lynxpresence $^{2}$)
 
 $^{1}$ also present in the `requirements.txt`
 
-$^{2}$ to show _listening_ instead of _playing_ in discord you'll need the [git version](https://github.com/qwertyquerty/) of pypresence or version 4.4.0 and up _should that ever release_
+$^{2}$ to show _listening_ instead of _playing_ in discord you'll need the [git version](https://github.com/qwertyquerty/) of pypresence or [lynxpresence](https://github.com/C0rn3j/lynxpresence), an updated fork of pypresence. as this is more of a temporary measure until pypresence gets a new release out, i have not put it into the requirements (yet).
 
 (also discord, your lastfm username and a working internet connection)
 
