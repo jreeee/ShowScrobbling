@@ -2,3 +2,4 @@ framework/__pycache__/
 framework/constants.py
 cache/
 .venv/
+requirements-dev.txt

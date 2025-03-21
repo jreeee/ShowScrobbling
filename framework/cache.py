@@ -44,27 +44,29 @@ class Cache:
 
         # searching for song & writing to cache
         if key not in self.cache.keys():
-            utils.log(2, "not found in cache, querying for track info")
-            new_track = requests.get_cover_image(track, track_info_j, ver)
-            utils.log(2, "got track info")
+            utils.log(2, "not found in cache")
+            if track.image == "":
+                new_track = requests.get_cover_image(track, track_info_j, ver)
+                track = new_track
+                utils.log(2, "got track info")
             if mbid_key:
                 self.cache[key] = {
-                    "title": new_track.name,
-                    "artist": new_track.artist,
-                    "album_mbid": new_track.album_mbid,
-                    "album": new_track.album,
-                    "length": int(new_track.length),
-                    "cover": new_track.image,
+                    "title": track.name,
+                    "artist": track.artist,
+                    "album_mbid": track.album_mbid,
+                    "album": track.album,
+                    "length": int(track.length),
+                    "cover": track.image,
                 }
             else:
                 self.cache[key] = {
-                    "album": new_track.album,
-                    "length": int(new_track.length),
-                    "cover": new_track.image,
+                    "album": track.album,
+                    "length": int(track.length),
+                    "cover": track.image,
                 }
             utils.log(3, json.dumps(self.cache[key]))
             self.write_cache()
-            return new_track
+            return track
 
         # get from json
         updated_track = track

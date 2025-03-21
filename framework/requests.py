@@ -99,8 +99,7 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # lastfm album cover based on track_info
     try:
         track.length = track_info_j["track"]["duration"]
-        if track.image == "":
-            track.image = track_info_j["track"]["album"]["image"][3]["#text"]
+        track.image = track_info_j["track"]["album"]["image"][3]["#text"]
         if track.image != "":
             track.img_link_nr = 2
             utils.log(3, "2nd img link: " + track.image)

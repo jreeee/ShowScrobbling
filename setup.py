@@ -76,6 +76,11 @@ if res != "Y" and res != "y":
     print("setup complete, exiting")
     sys.exit(0)
 
+# additional requirements for devving
+REQ_FILE = SCRIPT_DIR / "requirements-dev.txt"
+with open(REQ_FILE, "w", encoding="utf-8") as f:
+    f.write("black\npylint")
+print("added requirements-dev.txt")
 
 HOOK_CONTENT = """\
 #! /bin/bash
@@ -90,12 +95,12 @@ readme_v="$(echo $(sed -nE 's/.*VERSION-([0-9.]+).*/\\1/p' README.md))"
 script_v="$(echo $(sed -nE 's/.*VERSION = \"([0-9.]+)\"/\\1/p' showscrobbling.py))"
 [[ $readme_v != $script_v ]] && onfail "inconsistent versions readme: $readme_v, script: $script_v"
 
-echo "- black check:" && black --force-exclude="setup.py" --check .
+echo "- black check:" && python -m black --force-exclude="setup.py" --check .
 if [ $? -ne 0 ]; then
-    echo "- black formatting:" && black --force-exclude="setup.py" --verbose .
+    echo "- black formatting:" && python -m black --force-exclude="setup.py" --verbose .
     onfail "missing files were formatted, please add them"
 fi
-echo "- pylint" && pylint . --ignore=".venv"
+echo "- pylint" && python -m pylint . --ignore=".venv"
 
 echo "All checks passed."
 """
@@ -103,7 +108,7 @@ echo "All checks passed."
 with open(HOOK_FILE, "w", encoding="utf-8") as hooks:
     hooks.write(HOOK_CONTENT)
 
-# make file executable works for linux & mac afaik
+# make file executable
 perm = os.stat(HOOK_FILE).st_mode
 os.chmod(HOOK_FILE, perm | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 print("successfully created pre-commit hook")
