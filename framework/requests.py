@@ -33,7 +33,7 @@ def get_mb_json(variant, mbid, version):
         mb_url = f"{const.MB_REC_QRY}{variant}:{mbid}&fmt=json"
     # used for release groups
     else:
-        mb_url = f"https://musicbrainz.com/ws/2/release-group/?query={variant}:{mbid}&fmt=json"
+        mb_url = f"https://musicbrainz.org/ws/2/release-group/?query={variant}:{mbid}&fmt=json"
     utils.log(3, "url: " + mb_url)
     mb_req = urllib.request.Request(
         mb_url,
@@ -91,17 +91,18 @@ def req_mb(track, variant, ver) -> utils.Track:
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            if cover_arch_req.getcode() == 404:
-                utils.log(2, "no default release img, using release groups")
-                track_list = get_mb_json("reid", track.album_mbid, ver)
-                cover_id = track_list["release-groups"][0]["id"]
-                cover_arch_url = f"https://coverartarchive.org/release/{cover_id}"
-                utils.log(3, "2nd coverurl: " + cover_arch_url)
-            cover_j = get_json(cover_arch_url)
+        except HTTPError:
+            utils.log(2, "no default release img, using release groups")
+            track_list = get_mb_json("reid", track.album_mbid, ver)
+            cover_id = track_list["release-groups"][0]["id"]
+            cover_arch_url = f"https://coverartarchive.org/release-group/{cover_id}"
+        utils.log(3, "2nd coverurl: " + cover_arch_url)
+        cover_j = get_json(cover_arch_url)
+        try:
             track.image = cover_j["images"][0]["thumbnails"]["large"]
             utils.log(3, "3rd img link: " + track.image)
         except (KeyError, HTTPError):
-            utils.log(3, "key/http error, moving on")
+            utils.log(3, "keyerror, moving on")
             track.image = ""
     return track
 

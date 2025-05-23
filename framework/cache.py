@@ -43,9 +43,9 @@ class Cache:
             key = f"{track.name} -- {track.artist}"
 
         # searching for song & writing to cache
-        if key not in self.cache.keys():
+        if key not in self.cache.keys() or self.cache[key]["cover"] == "fallback":
             utils.log(2, "not found in cache")
-            if track.image == "":
+            if track.image == "" or track.image == "fallback":
                 new_track = requests.get_cover_image(track, track_info_j, ver)
                 track = new_track
                 utils.log(2, "got track info")
