@@ -146,5 +146,37 @@ class Cache:
         print(entry_base)
         print(entry_mb)
 
-        # for i in self.cache:
-        #    if not " -- " in i:
+        # find identical tracks in both formats
+        # ideally: merge into mbid, replace basic with link to mbid
+        for i in self.cache:
+            # basic tracks
+            if " -- " in i:
+                title, artist = i.split(" -- ")
+                for j in self.cache:
+                    # mbid tracks
+                    if not " -- " in j:
+                        if (
+                            self.cache[j]["title"] == title
+                            and self.cache[j]["artist"] == artist
+                        ):
+                            print("found match for " + artist + " - " + title)
+                            print("---------------------")
+                            print(self.cache[j])
+                            print(self.cache[i])
+                            print("---------------------")
+
+        # check album mbids and add a cover? could be useful for new songs to not even qry covers
+        for i in self.cache:
+            if not " -- " in i:
+                a_mbid = self.cache[i]["album_mbid"]
+                a_cover = self.cache[i]["cover"]
+                for j in self.cache:
+                    if not " -- " in j and j != i:
+                        if (
+                            a_mbid == self.cache[j]["album_mbid"]
+                            and a_cover == "fallback"
+                        ):
+                            print("---------------------")
+                            print(self.cache[j])
+                            print(self.cache[i])
+                            print("---------------------")

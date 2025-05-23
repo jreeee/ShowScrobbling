@@ -26,8 +26,14 @@ def get_json(url):
 
 
 def get_mb_json(variant, mbid, version):
-    """get json object from musicbrainz using tid or rid query"""
-    mb_url = f"{const.MB_REC_QRY}{variant}:{mbid}&fmt=json"
+    """get json object from musicbrainz using tid, rid or reid query"""
+
+    # used for tracks
+    if variant != "reid":
+        mb_url = f"{const.MB_REC_QRY}{variant}:{mbid}&fmt=json"
+    # used for release groups
+    else:
+        mb_url = f"https://musicbrainz.com/ws/2/release-group/?query={variant}:{mbid}&fmt=json"
     utils.log(3, "url: " + mb_url)
     mb_req = urllib.request.Request(
         mb_url,
@@ -54,6 +60,7 @@ def track_info_url(track_json):
 def req_mb(track, variant, ver) -> utils.Track:
     """send a request to MusicBrainz to get the mbid of the track and get coverart"""
     track_mb_j = None
+    rel_num = 0
     # track has mbid, album does not
     if track.mbid != "" and track.album_mbid == "":
         utils.log(2, "requesting musicbrainz for info")
@@ -62,8 +69,16 @@ def req_mb(track, variant, ver) -> utils.Track:
         if track_mb_j is None:
             return track
         track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
+        # check for release with matching name
+        if track.album != "":
+            for i in track_mb_j["recordings"][0]["releases"]:
+                if i["title"] == track.album:
+                    break
+                else:
+                    rel_num += 1
+        track.album_mbid = track_mb_j["recordings"][0]["releases"][rel_num]["id"]
         if track.length == 0:
-            track.lenth = int(track_mb_j["recordings"][0]["length"])
+            track.lenth = int(track_mb_j["recordings"][rel_num]["length"])
         if track.album == "":
             track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
         utils.log(
@@ -76,13 +91,11 @@ def req_mb(track, variant, ver) -> utils.Track:
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
             cover_arch_req = urllib.request.urlopen(cover_arch_url)
-            # TODO loop over & look into releases for coverart
-
-            if (cover_arch_req.getcode() == 404) and (track_mb_j is not None):
-                track.album_mbid = track_mb_j["recordings"][0]["releases"][1]["id"]
-                cover_arch_url = (
-                    f"https://coverartarchive.org/release/{track.album_mbid}"
-                )
+            if cover_arch_req.getcode() == 404:
+                utils.log(2, "no default release img, using release groups")
+                track_list = get_mb_json("reid", track.album_mbid, ver)
+                cover_id = track_list["release-groups"][0]["id"]
+                cover_arch_url = f"https://coverartarchive.org/release/{cover_id}"
                 utils.log(3, "2nd coverurl: " + cover_arch_url)
             cover_j = get_json(cover_arch_url)
             track.image = cover_j["images"][0]["thumbnails"]["large"]
