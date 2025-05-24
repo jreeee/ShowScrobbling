@@ -9,31 +9,46 @@ import json
 from framework import utils
 from framework import constants as const
 
+MB_API="https://musicbrainz.org/ws/2/"
 
 def get_json(url):
     """return json object for given url"""
     try:
         url_obj = urllib.request.urlopen(url)
-        if url_obj.getcode() == 404:
-            utils.log(2, "no site")
-            return None
         url_decoded = url_obj.read().decode()
         json_obj = json.loads(url_decoded)
-        utils.log(3, json.dumps(json_obj, indent=2))
+        utils.log(4, json.dumps(json_obj, indent=2))
         return json_obj
     except HTTPError:
+        utils.log(2, "no site")
+        return None
+    
+def get_html_cover(url):
+    """return cover url from vgmdb"""
+    try:
+        url_obj = urllib.request.urlopen(url)
+        url_decoded = url_obj.read()
+        vgmdb_html = str(url_decoded)
+        idx = vgmdb_html.index("property=\"og:image\"")
+        cover_idx_start= vgmdb_html.index("https:", idx)
+        cover_idx_end= vgmdb_html.index("/>", idx)
+        cover_line = vgmdb_html[cover_idx_start:cover_idx_end]
+        cover = cover_line.split("\"")[0]
+        utils.log("vgmdb url: " + cover)
+        return cover
+    except (HTTPError, IndexError):
+        utils.log(2, "error in vgmdb query")
         return ""
-
 
 def get_mb_json(variant, mbid, version):
     """get json object from musicbrainz using tid, rid or reid query"""
-
-    # used for tracks
+    
     if variant != "reid":
-        mb_url = f"{const.MB_REC_QRY}{variant}:{mbid}&fmt=json"
-    # used for release groups
+        query="recording/?query="
     else:
-        mb_url = f"https://musicbrainz.org/ws/2/release-group/?query={variant}:{mbid}&fmt=json"
+        query="release-group/?query="
+
+    mb_url = f"{MB_API}{query}{variant}:{mbid}&fmt=json"
     utils.log(3, "url: " + mb_url)
     mb_req = urllib.request.Request(
         mb_url,
@@ -43,6 +58,39 @@ def get_mb_json(variant, mbid, version):
         },
     )
     return get_json(mb_req)
+
+def get_vgmdb_json(form, mbid, version):
+    """check mb if vgmdb is a relation"""
+
+    res = ""
+    # form is either release or release group
+    mb_url = f"{MB_API}{form}/{mbid}?inc=url-rels&fmt=json"
+    utils.log(3, "url: " + mb_url)
+    mb_req = urllib.request.Request(
+        mb_url,
+        data=None,
+        headers={
+            "User-Agent": f"ShowScrobbing/{version} ( https://github.com/jreeee/ShowScrobbling )"
+        },
+    )
+    query = get_json(mb_req)
+    if query == "":
+        return res
+    for i in query["relations"]:
+        if i["type"] == "vgmdb":
+            res = i["url"]["resource"]
+            break
+    if res == "":
+        return res
+    utils.log(3, "url: " + res)
+    vgmdb_req =urllib.request.Request(
+        res,
+        data=None,
+        headers={
+            "User-Agent": f"ShowScrobbing/{version} ( https://github.com/jreeee/ShowScrobbling )"
+        },
+    )
+    return get_html_cover(vgmdb_req)
 
 
 def track_info_url(track_json):
@@ -64,46 +112,54 @@ def req_mb(track, variant, ver) -> utils.Track:
     # track has mbid, album does not
     if track.mbid != "" and track.album_mbid == "":
         utils.log(2, "requesting musicbrainz for info")
-        # https://musicbrainz.org/ws/2/recording/MBID?fmt=json&inc=aliases might help
         track_mb_j = get_mb_json(variant, track.mbid, ver)
         if track_mb_j is None:
             return track
-        track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
         # check for release with matching name
         if track.album != "":
             for i in track_mb_j["recordings"][0]["releases"]:
                 if i["title"] == track.album:
+                    track.album_mbid = i["id"]
                     break
                 else:
                     rel_num += 1
-        track.album_mbid = track_mb_j["recordings"][0]["releases"][rel_num]["id"]
+        # set values of the first release found if no album name nor album mbid
+        else:
+            track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
+            track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
+            rel_num = 0
         if track.length == 0:
             track.lenth = int(track_mb_j["recordings"][rel_num]["length"])
-        if track.album == "":
-            track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
+        
         utils.log(
             3,
             "release mbid:" + str(track.album_mbid) + ", length: " + str(track.length),
         )
+
+        if track.image == "" and track.album_mbid != "":
+            track.image = get_vgmdb_json("release", track.album_mbid, ver)
+
     # album has mbid
     if track.album_mbid != "" and track.image == "":
+
+        cover_id = ""
         cover_arch_url = f"https://coverartarchive.org/release/{track.album_mbid}"
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
-            cover_arch_req = urllib.request.urlopen(cover_arch_url)
+            urllib.request.urlopen(cover_arch_url)
         except HTTPError:
             utils.log(2, "no default release img, using release groups")
             track_list = get_mb_json("reid", track.album_mbid, ver)
             cover_id = track_list["release-groups"][0]["id"]
             cover_arch_url = f"https://coverartarchive.org/release-group/{cover_id}"
         utils.log(3, "2nd coverurl: " + cover_arch_url)
-        cover_j = get_json(cover_arch_url)
         try:
+            cover_j = get_json(cover_arch_url)
             track.image = cover_j["images"][0]["thumbnails"]["large"]
             utils.log(3, "3rd img link: " + track.image)
-        except (KeyError, HTTPError):
-            utils.log(3, "keyerror, moving on")
-            track.image = ""
+        except (KeyError, TypeError):
+            utils.log(3, "error getting link, moving on")
+            track.image = get_vgmdb_json("release", cover_id, ver)
     return track
 
 
