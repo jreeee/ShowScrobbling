@@ -9,7 +9,8 @@ import json
 from framework import utils
 from framework import constants as const
 
-MB_API="https://musicbrainz.org/ws/2/"
+MB_API = "https://musicbrainz.org/ws/2/"
+
 
 def get_json(url):
     """return json object for given url"""
@@ -21,32 +22,35 @@ def get_json(url):
         return json_obj
     except HTTPError:
         utils.log(2, "no site")
-        return None
-    
-def get_html_cover(url):
+        return ""
+
+
+def get_html_cover(url) -> str:
     """return cover url from vgmdb"""
     try:
         url_obj = urllib.request.urlopen(url)
         url_decoded = url_obj.read()
         vgmdb_html = str(url_decoded)
-        idx = vgmdb_html.index("property=\"og:image\"")
-        cover_idx_start= vgmdb_html.index("https:", idx)
-        cover_idx_end= vgmdb_html.index("/>", idx)
-        cover_line = vgmdb_html[cover_idx_start:cover_idx_end]
-        cover = cover_line.split("\"")[0]
-        utils.log("vgmdb url: " + cover)
+        idx = vgmdb_html.index('property="og:image"')
+        cover_idx_start = vgmdb_html.index("https:", idx)
+        cover_idx_end = vgmdb_html.index('"', cover_idx_start)
+
+        cover = vgmdb_html[cover_idx_start:cover_idx_end]
+        # cover = cover_line.split('"')[0]
+        utils.log(2, "vgmdb url: " + cover)
         return cover
     except (HTTPError, IndexError):
         utils.log(2, "error in vgmdb query")
         return ""
 
+
 def get_mb_json(variant, mbid, version):
     """get json object from musicbrainz using tid, rid or reid query"""
-    
+
     if variant != "reid":
-        query="recording/?query="
+        query = "recording/?query="
     else:
-        query="release-group/?query="
+        query = "release-group/?query="
 
     mb_url = f"{MB_API}{query}{variant}:{mbid}&fmt=json"
     utils.log(3, "url: " + mb_url)
@@ -58,6 +62,7 @@ def get_mb_json(variant, mbid, version):
         },
     )
     return get_json(mb_req)
+
 
 def get_vgmdb_json(form, mbid, version):
     """check mb if vgmdb is a relation"""
@@ -83,7 +88,7 @@ def get_vgmdb_json(form, mbid, version):
     if res == "":
         return res
     utils.log(3, "url: " + res)
-    vgmdb_req =urllib.request.Request(
+    vgmdb_req = urllib.request.Request(
         res,
         data=None,
         headers={
@@ -113,7 +118,7 @@ def req_mb(track, variant, ver) -> utils.Track:
     if track.mbid != "" and track.album_mbid == "":
         utils.log(2, "requesting musicbrainz for info")
         track_mb_j = get_mb_json(variant, track.mbid, ver)
-        if track_mb_j is None:
+        if track_mb_j == "":
             return track
         # check for release with matching name
         if track.album != "":
@@ -121,8 +126,7 @@ def req_mb(track, variant, ver) -> utils.Track:
                 if i["title"] == track.album:
                     track.album_mbid = i["id"]
                     break
-                else:
-                    rel_num += 1
+                rel_num += 1
         # set values of the first release found if no album name nor album mbid
         else:
             track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
@@ -130,7 +134,7 @@ def req_mb(track, variant, ver) -> utils.Track:
             rel_num = 0
         if track.length == 0:
             track.lenth = int(track_mb_j["recordings"][rel_num]["length"])
-        
+
         utils.log(
             3,
             "release mbid:" + str(track.album_mbid) + ", length: " + str(track.length),

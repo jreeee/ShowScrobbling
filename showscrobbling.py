@@ -22,11 +22,11 @@ try:
     from pypresence import ActivityType
 
     ACTIVITY_TYPE_SUPPORT = True
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     try:
         from lynxpresence import Presence
-        from lynxpresence import exceptions as ex
         from lynxpresence import ActivityType
+        import lynxpresence.exceptions as ex
 
         ACTIVITY_TYPE_SUPPORT = True
     except ModuleNotFoundError:
@@ -41,7 +41,7 @@ from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.8"
+VERSION = "1.9"
 
 # get and parse args
 args = parser.parse_args()
@@ -129,7 +129,6 @@ class Scrobbpy:
         # in case of new track
         if new_url != self.track.url:
             # update states
-            utils.log(3, args.request)
             self.rpc_state.update(args.request)
             # create new track object
             self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)

@@ -50,7 +50,6 @@ DEFAULT_TRACK_IMAGE = "{default_img}"
 
 # don't change the following values if you want the script to work properly
 LFM_API_KEY = "5125b622ac7cb502b9a857bb59a57830"
-MB_REC_QRY = "https://musicbrainz.org/ws/2/recording/?query="
 
 CLIENT_ID = "1301054835101270117"
 URL_RECENT_TRACK = f'http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&nowplaying="true"&user={{USR}}&limit=1&api_key={{LFM_API_KEY}}&format=json'
