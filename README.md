@@ -1,8 +1,9 @@
 # **|**|:S:|**|** - ShowScrobbling
-<img src="media/shoscro-logo-square.png" width="28px" /> ![Version Badge](https://img.shields.io/badge/VERSION-1.8-white?style=for-the-badge)
+<img src="media/shoscro-logo-square.png" width="28px" /> ![Version Badge](https://img.shields.io/badge/VERSION-1.9-white?style=for-the-badge)
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
 
 ### description
 
@@ -10,9 +11,13 @@ showscrobbling / shoscro / **|**|:S:|**|** is an inofficial discord rich presenc
 
 it checks your last.fm profile for a currently playing track and displays it on discord.
 
+<p align="center">
+    <img style="width: 50%" alt="screenshot" src="media/screenshot-earlgray.png"/>
+</p>
+
 ### goal
 
-showscrobbling aims to be simple, lightweight and cross-platform
+showscrobbling aims to be simple to use, lightweight and cross-platform
 
 ### why?
 
@@ -26,7 +31,7 @@ i usually listen to music via youtube using [Web Scrobbler](https://web-scrobble
 
 `# pip install -r requirements.txt` (or use your packet manager to install the [reqs](#requirements))
 #### graphical:
-download the repo and unzip it.
+download the repo/[latest release](https://github.com/jreeee/ShowScrobbling/releases/latest) and unzip it.
 before starting the programm please execute the `setup.py` file and enter your username when prompted.
 this will create a file called `constats.py` in the `framework` folder where various static values reside. you'll also need to install the [required libraries](#requirements) for shoscro to work
 
@@ -41,10 +46,9 @@ after finishing the setup just start the program. it should automatically connec
 
 because shoscro is written in python, you can use this on Windows and Linux (probably also Mac) and with any scrobbler as long as it updates your lastfm page somewhat regularly.
 
-<img src="media/screenshot-friends-menu.png" width="45%" /> <img src="media/screenshot-activity-self.png" width="45%" />
-<img src="media/screenshot-activity-detailed.png" width="75%" />
-
-when hovering over the icon the playcount is displayed. if the user has the track set as 'loved' this will also be shown here.
+<p align="center">
+    <img style="width: 60%" alt="screenshot" src="media/screenshot-buttons-example.png"/>
+</p>
 
 when another discord user clicks on your activity, they'll have two buttons, linking to the song page on lastfm and your profile respectively.
 
@@ -77,12 +81,12 @@ args | default | desc
 --- | :---: | ---
 -h \| --help | - | displays help message, listing all args
 -u \| --user | - | your lastfm username 
--l \| --loglevel | 1 | program generated output, 0: silent -> 3: debug, default 1
+-l \| --loglevel | 1 | program generated output, 0: silent -> 4: debug, default 1
 -i \| --image | [this](https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif) | default image link if there's none for the track
 -r \| --request | 30 | interval in seconds to request the lastfm api for most recent track
 -c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/cache/metadata.json"`
 -E \| --enable-lfm-track-image | - | enable the use of the lfm track image. this is different from the lfm album image in that it is just a grey star sometimes ([see issue #15](https://github.com/jreeee/ShowScrobbling/issues/15)). because of that, showscrobbling elects to ignore this imagelink by default
-
+-C \| --check-cache | - | info about the cached songs
 
 ## similar projects
 - Gust4Oliveira's [Last.fm Discord Rich Presence](https://github.com/Gust4Oliveira/Last.fm-Discord-Rich-Presence)

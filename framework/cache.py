@@ -43,9 +43,9 @@ class Cache:
             key = f"{track.name} -- {track.artist}"
 
         # searching for song & writing to cache
-        if key not in self.cache.keys():
+        if key not in self.cache.keys() or self.cache[key]["cover"] == "fallback":
             utils.log(2, "not found in cache")
-            if track.image == "":
+            if track.image in ("", "fallback"):
                 new_track = requests.get_cover_image(track, track_info_j, ver)
                 track = new_track
                 utils.log(2, "got track info")
@@ -82,3 +82,103 @@ class Cache:
         updated_track.img_link_nr = 0
         utils.log(3, json.dumps(self.cache[key]))
         return updated_track
+
+    def cache_info(self):
+        """display info about the cahe file"""
+
+        # get filesize of the current cache file
+        cache_size = os.path.getsize(self.cache_fp)
+        if cache_size > (1024 * 1024):
+            cache_size = str(round(cache_size / (1024 * 1024), 1)) + " MB"
+        elif cache_size > 1024:
+            cache_size = str(round(cache_size / 1024, 1)) + " KB"
+        else:
+            cache_size = str(round(cache_size, 1)) + " B"
+        print(f"cache file at {self.cache_fp} has a size of {cache_size}")
+
+        entry_b = [0, 0, 0, 0, 0]
+        entry_mb = [0, 0, 0, 0, 0]
+        # checking for type
+        for i in self.cache:
+            if " -- " in i:
+                entry_b[0] += 1
+                tmp = 0
+                if self.cache[i]["cover"] == "fallback":
+                    entry_b[1] += 1
+                    tmp += 4
+                if self.cache[i]["album"] == "":
+                    entry_b[2] += 1
+                    tmp += 2
+                if self.cache[i]["length"] == "0":
+                    entry_b[3] += 1
+                    tmp += 1
+                if tmp == 7:
+                    entry_b[4] += 1
+            else:
+                entry_mb[0] += 1
+                tmp = 0
+                if self.cache[i]["cover"] == "fallback":
+                    entry_mb[1] += 1
+                    tmp += 4
+                if self.cache[i]["album"] == "":
+                    entry_mb[2] += 1
+                    tmp += 2
+                if self.cache[i]["length"] == "0":
+                    entry_mb[3] += 1
+                    tmp += 1
+                if tmp == 7:
+                    entry_mb[4] += 1
+
+        print(
+            f"Total entries: {entry_b[0] + entry_mb[0]}, Base: {entry_b[0]}, Mbid: {entry_mb[0]}"
+        )
+        print(
+            f"Cover missing: {entry_b[1] + entry_mb[1]}, Base: {entry_b[1]}, Mbid: {entry_mb[1]}"
+        )
+        print(
+            f"Album missing: {entry_b[2] + entry_mb[2]}, Base: {entry_b[2]}, Mbid: {entry_mb[2]}"
+        )
+        print(
+            f"Length missing: {entry_b[3] + entry_mb[3]}, Base: {entry_b[3]}, Mbid: {entry_mb[3]}"
+        )
+        print(
+            f"Garbage Tracks: {entry_b[4] + entry_mb[4]}, Base: {entry_b[4]}, Mbid: {entry_mb[4]}"
+        )
+
+        print(entry_b)
+        print(entry_mb)
+
+        # find identical tracks in both formats
+        # ideally: merge into mbid, replace basic with link to mbid
+        for i in self.cache:
+            # basic tracks
+            if " -- " in i:
+                title, artist = i.split(" -- ")
+                for j in self.cache:
+                    # mbid tracks
+                    if not " -- " in j:
+                        if (
+                            self.cache[j]["title"] == title
+                            and self.cache[j]["artist"] == artist
+                        ):
+                            print("found match for " + artist + " - " + title)
+                            print("---------------------")
+                            print(self.cache[j])
+                            print(self.cache[i])
+                            print("---------------------")
+
+        # check album mbids and add a cover? could be useful for new songs to not even qry covers
+        for i in self.cache:
+            if not " -- " in i:
+                a_mbid = self.cache[i]["album_mbid"]
+                a_cover = self.cache[i]["cover"]
+                for j in self.cache:
+                    if not " -- " in j and j != i:
+                        if (
+                            a_mbid == self.cache[j]["album_mbid"]
+                            and a_cover == "fallback"
+                        ):
+                            print("---------------------")
+                            print(self.cache[j])
+                            print(self.cache[i])
+                            print("---------------------")

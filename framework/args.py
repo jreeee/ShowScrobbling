@@ -64,4 +64,10 @@ def parse_args():
         action="store_true",
         help="enable the use of the default lastfm track image. disabled by default",
     )
+    parser.add_argument(
+        "-C",
+        "--check-cache",
+        action="store_true",
+        help="check entries in cache, tries to add missing info and removes empty objects",
+    )
     return parser.parse_args()
