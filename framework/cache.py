@@ -41,6 +41,10 @@ class Cache:
             key = track.mbid
         else:
             key = f"{track.name} -- {track.artist}"
+            # link entry
+            if key in self.cache.keys() and self.cache[key].get("mbid") is not None:
+                key = self.cache[key]["mbid"]
+                mbid_key = True
 
         # searching for song & writing to cache
         if key not in self.cache.keys() or self.cache[key]["cover"] == "fallback":
@@ -148,6 +152,7 @@ class Cache:
         print(entry_b)
         print(entry_mb)
 
+        # find_dulicates()
         # find identical tracks in both formats
         # ideally: merge into mbid, replace basic with link to mbid
         for i in self.cache:

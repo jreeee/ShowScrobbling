@@ -154,16 +154,18 @@ def req_mb(track, variant, ver) -> utils.Track:
         except HTTPError:
             utils.log(2, "no default release img, using release groups")
             track_list = get_mb_json("reid", track.album_mbid, ver)
-            cover_id = track_list["release-groups"][0]["id"]
-            cover_arch_url = f"https://coverartarchive.org/release-group/{cover_id}"
-        utils.log(3, "2nd coverurl: " + cover_arch_url)
-        try:
-            cover_j = get_json(cover_arch_url)
-            track.image = cover_j["images"][0]["thumbnails"]["large"]
-            utils.log(3, "3rd img link: " + track.image)
-        except (KeyError, TypeError):
-            utils.log(3, "error getting link, moving on")
-            track.image = get_vgmdb_json("release", cover_id, ver)
+            if track_list != "":
+                cover_id = track_list["release-groups"][0]["id"]
+                cover_arch_url = f"https://coverartarchive.org/release-group/{cover_id}"
+                utils.log(3, "2nd coverurl: " + cover_arch_url)
+            else:
+                cover_j = get_json(cover_arch_url)
+                if cover_j != "":
+                    track.image = cover_j["images"][0]["thumbnails"]["large"]
+                    utils.log(3, "3rd img link: " + track.image)
+                else:
+                    utils.log(3, "error getting link, moving on")
+                    track.image = get_vgmdb_json("release", cover_id, ver)
     return track
 
 
@@ -182,6 +184,7 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
         utils.log(3, "2nd img link not found, lfm track info missing")
 
     # musicbrainz album artwork based on track_info
+    updatedtrack = None
     try:
         updatedtrack = req_mb(track, "tid", ver)
         updatedtrack.img_link_nr = 3

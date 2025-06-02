@@ -17,7 +17,7 @@ it checks your last.fm profile for a currently playing track and displays it on 
 
 ### goal
 
-showscrobbling aims to be simple to use, lightweight and cross-platform
+showscrobbling aims to be easy to use, lightweight and cross-platform
 
 ### why?
 
@@ -32,19 +32,21 @@ i usually listen to music via youtube using [Web Scrobbler](https://web-scrobble
 `# pip install -r requirements.txt` (or use your packet manager to install the [reqs](#requirements))
 #### graphical:
 download the repo/[latest release](https://github.com/jreeee/ShowScrobbling/releases/latest) and unzip it.
-before starting the programm please execute the `setup.py` file and enter your username when prompted.
+before starting the programm please execute the `setup.py` file in a terminal and enter your username when prompted.
 this will create a file called `constats.py` in the `framework` folder where various static values reside. you'll also need to install the [required libraries](#requirements) for shoscro to work
 
 ### troubleshooting
 should error occur after upgrading to a new version, run `./setup.py` again and, when prompted, type 'u' to update the `constants.py`. this will update the file, keeping the set values you already set.
 
+if you encounter any other issues, feel free to let me know by opening a issue :)
+
 ### startup
 
-after finishing the setup just start the program. it should automatically connect to discord and show which song you are currently listening to. it then updates every 30s to fetch the currently playing song from last.fm.
+after finishing the setup just start the program. it should automatically connect to your discord client and show which song you are currently listening to. it then updates every 30s to fetch the currently playing song from last.fm.
 
 ### general info
 
-because shoscro is written in python, you can use this on Windows and Linux (probably also Mac) and with any scrobbler as long as it updates your lastfm page somewhat regularly.
+because shoscro is written in python, you can use it on Windows and Linux (probably also Mac) and with any scrobbler as long as that updates your lastfm page somewhat regularly.
 
 <p align="center">
     <img style="width: 60%" alt="screenshot" src="media/screenshot-buttons-example.png"/>
