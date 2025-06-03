@@ -110,7 +110,7 @@ def track_info_url(track_json):
     return info_url
 
 
-def req_mb(track, variant, ver) -> utils.Track:
+def req_mb_track(track, variant, ver) -> utils.Track:
     """send a request to MusicBrainz to get the mbid of the track and get coverart"""
     track_mb_j = None
     rel_num = 0
@@ -143,30 +143,36 @@ def req_mb(track, variant, ver) -> utils.Track:
         if track.image == "" and track.album_mbid != "":
             track.image = get_vgmdb_json("release", track.album_mbid, ver)
 
+    return track
+
     # album has mbid
-    if track.album_mbid != "" and track.image == "":
+
+
+def req_album_cover(album_mbid, cover, ver):
+    if album_mbid != "" and cover in ("", "fallback"):
 
         cover_id = ""
-        cover_arch_url = f"https://coverartarchive.org/release/{track.album_mbid}"
+        image = ""
+        cover_arch_url = f"https://coverartarchive.org/release/{album_mbid}"
         utils.log(3, "coverurl: " + cover_arch_url)
         try:
             urllib.request.urlopen(cover_arch_url)
+            cover_j = get_json(cover_arch_url)
+            if cover_j != "":
+                return cover_j["images"][0]["thumbnails"]["large"]
         except HTTPError:
             utils.log(2, "no default release img, using release groups")
-            track_list = get_mb_json("reid", track.album_mbid, ver)
-            if track_list != "":
-                cover_id = track_list["release-groups"][0]["id"]
-                cover_arch_url = f"https://coverartarchive.org/release-group/{cover_id}"
-                utils.log(3, "2nd coverurl: " + cover_arch_url)
-            else:
-                cover_j = get_json(cover_arch_url)
-                if cover_j != "":
-                    track.image = cover_j["images"][0]["thumbnails"]["large"]
-                    utils.log(3, "3rd img link: " + track.image)
-                else:
-                    utils.log(3, "error getting link, moving on")
-                    track.image = get_vgmdb_json("release", cover_id, ver)
-    return track
+        track_list = get_mb_json("reid", album_mbid, ver)
+        if track_list != "":
+            cover_id = track_list["release-groups"][0]["id"]
+            cover_j = get_json(f"https://coverartarchive.org/release-group/{cover_id}")
+            if cover_j != "":
+                return cover_j["images"][0]["thumbnails"]["large"]
+            utils.log(3, "2nd coverurl: " + image)
+        else:
+            utils.log(3, "error getting link, moving on")
+            return get_vgmdb_json("release", cover_id, ver)
+    return cover
 
 
 def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
@@ -186,12 +192,18 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
     # musicbrainz album artwork based on track_info
     updatedtrack = None
     try:
-        updatedtrack = req_mb(track, "tid", ver)
+        updatedtrack = req_mb_track(track, "tid", ver)
+        updatedtrack.image = req_album_cover(
+            updatedtrack.album_mbid, updatedtrack.image, ver
+        )
         updatedtrack.img_link_nr = 3
     except IndexError:
         utils.log(3, "musicbrainz tid query failed")
         try:
-            updatedtrack = req_mb(track, "rid", ver)
+            updatedtrack = req_mb_track(track, "rid", ver)
+            updatedtrack.image = req_album_cover(
+                updatedtrack.album_mbid, updatedtrack.image, ver
+            )
             updatedtrack.img_link_nr = 4
         except IndexError:
             utils.log(3, "musicbrainz rid query failed")
