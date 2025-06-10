@@ -125,10 +125,30 @@ class Cache:
         print(link)
         self.cache.update(link)
 
+    def check_cache(self):
+        self.find_dulicates()
+        self.cache_info()
+        strictness = [5, 6, 7]
+        ent_base = self.check_entries("base", strictness)
+        ent_mb = self.check_entries("mb", strictness)
+        ent_link = self.check_entries("link", strictness)
+
+        utils.log(
+            1,
+            f"Total entries: {ent_base[0] + ent_mb[0] + ent_link[0]}\
+            - base: {ent_base[0]}, mb: {ent_mb[0]}, link: {ent_link[0]}",
+        )
+        utils.log(
+            1,
+            f"Entries over threshold: {ent_base[4] + ent_mb[4] + ent_link[4]}\
+            - base: {ent_base[4]}, mb: {ent_mb[4]}, link: {ent_link[4]}",
+        )
+
+        self.check_mbid_album_cover_local()
+        self.check_album_mbid_cover_qry()
+
     def cache_info(self):
         """display info about the cahe file"""
-
-        # TODO split into smaller functions, add log instead of print
 
         # get filesize of the current cache file
         cache_size = os.path.getsize(self.cache_fp)
@@ -138,67 +158,51 @@ class Cache:
             cache_size = str(round(cache_size / 1024, 1)) + " KB"
         else:
             cache_size = str(round(cache_size, 1)) + " B"
-        print(f"cache file at {self.cache_fp} has a size of {cache_size}")
+        utils.log(1, f"cache file at {self.cache_fp} has a size of {cache_size}")
 
-        entry_b = [0, 0, 0, 0, 0]
-        entry_mb = [0, 0, 0, 0, 0]
-        entry_l = 0
-        # checking for type
+    def check_entries(self, ent_type, strictness) -> []:
+        """
+        check how many entries are missing what. strictness is an int array, calculated by the following metric:
+        no cover +4, no album +2, no length +1
+        so the lowest strictness is 7, where only tracks without any data are discarded.
+        type is either 'base', 'mb' or 'link' which checks the different formats
+        """
+        entries = [0, 0, 0, 0, 0]
         for i in self.cache:
-            if " -- " in i:
-                if self.cache[i].get("mbid") is not None:
-                    entry_l += 1
-                else:
-                    entry_b[0] += 1
-                    tmp = 0
-                    if self.cache[i]["cover"] == "fallback":
-                        entry_b[1] += 1
-                        tmp += 4
-                    if self.cache[i]["album"] == "":
-                        entry_b[2] += 1
-                        tmp += 2
-                    if self.cache[i]["length"] == "0":
-                        entry_b[3] += 1
-                        tmp += 1
-                    if tmp == 7:
-                        entry_b[4] += 1
-            else:
-                entry_mb[0] += 1
-                tmp = 0
-                if self.cache[i]["cover"] == "fallback":
-                    entry_mb[1] += 1
-                    tmp += 4
-                if self.cache[i]["album"] == "":
-                    entry_mb[2] += 1
-                    tmp += 2
-                if self.cache[i]["length"] == "0":
-                    entry_mb[3] += 1
-                    tmp += 1
-                if tmp == 7:
-                    entry_mb[4] += 1
+            # checking for type
+            if ent_type in ["base", "link"]:
+                if " -- " in i:
+                    if ent_type == "link":
+                        if self.cache[i].get("mbid") is not None:
+                            entries[0] += 1
+                    else:
+                        if self.cache[i].get("mbid") is None:
+                            tmp = entry_status(self.cache[i])
+                            tmp[4] = 1 if tmp[4] in strictness else 0
+                            entries = [sum(x) for x in zip(entries, tmp)]
 
-        print(
-            f"Total entries: {entry_b[0] + entry_mb[0] + entry_l}, Base: {entry_b[0]}, Mbid: {entry_mb[0]}, Link: {entry_l}"
-        )
-        print(
-            f"Cover missing: {entry_b[1] + entry_mb[1]}, Base: {entry_b[1]}, Mbid: {entry_mb[1]}"
-        )
-        print(
-            f"Album missing: {entry_b[2] + entry_mb[2]}, Base: {entry_b[2]}, Mbid: {entry_mb[2]}"
-        )
-        print(
-            f"Length missing: {entry_b[3] + entry_mb[3]}, Base: {entry_b[3]}, Mbid: {entry_mb[3]}"
-        )
-        print(
-            f"Garbage Tracks: {entry_b[4] + entry_mb[4]}, Base: {entry_b[4]}, Mbid: {entry_mb[4]}"
-        )
+            elif ent_type == "mb":
+                if not " -- " in i:
+                    tmp = entry_status(self.cache[i])
+                    tmp[4] = 1 if tmp[4] in strictness else 0
+                    entries = [sum(x) for x in zip(entries, tmp)]
 
-        print(entry_b)
-        print(entry_mb)
+        utils.log(3, entries)
+        return entries
 
-        # find_dulicates(self)
-        # find identical tracks in both formats
-        # ideally: merge into mbid, replace basic with link to mbid
+    def entry_status(entry) -> []:
+        """check entry from cache for missing things"""
+        status = [1, 0, 0, 0, 0]
+        status[1] = 1 if entry["cover"] == "fallback" else 0
+        status[2] = 1 if entry["album"] == "" else 0
+        status[3] = 1 if entry["length"] == "0" else 0
+        # calculate and store bitmask
+        status[4] = 4 * status[1] + 2 * status[2] + status[3]
+        return status
+
+    def find_dulicates(self):
+        """find identical tracks in both formats, merge into mbid,
+        replace basic entry with link to mbid"""
         for i in self.cache:
             # basic tracks, disregard link types
             if " -- " in i and self.cache[i].get("mbid") is None:
@@ -220,28 +224,20 @@ class Cache:
         # update cache
         self.write_cache()
 
-        # check album mbids and add a cover? could be useful for new songs to not even qry covers
+    def check_album_mbid_cover_qry(self):
+        """check album mbids and add a cover? could be useful for new songs to not even qry covers"""
         track_album_mbids = []
 
         # find missing covers
         for i in self.cache:
             if not " -- " in i:
-                # a_mbid = self.cache[i]["album_mbid"]
-                # a_cover = self.cache[i]["cover"]
-                # for j in self.cache:
-                #     if not " -- " in j and j != i:
-                #         if (
-                #             a_mbid == self.cache[j]["album_mbid"]
-                #             and a_cover == "fallback"
-                #         ):
-                #             print("---------------------")
-                #             print(self.cache[j])
-                #             print(self.cache[i])
-                #             print("---------------------")
                 if self.cache[i]["cover"] == "fallback":
                     if self.cache[i]["album_mbid"] not in track_album_mbids:
                         track_album_mbids.append(self.cache[i]["album_mbid"])
 
+        if len(track_album_mbids) == 0:
+            return
+        # new array to hold the links wth the same size as the mbid array
         track_album_covers = [""] * len(track_album_mbids)
         # check if in cache
         for i in self.cache:
@@ -253,8 +249,8 @@ class Cache:
                             self.cache[i]["cover"]
                         )
 
-        print(f"list: {track_album_mbids}")
-        print(f"list: {track_album_covers}")
+        utils.log(3, f"list: {track_album_mbids}")
+        utils.log(3, f"list: {track_album_covers}")
 
         for i in range(0, len(track_album_mbids), 1):
             if track_album_covers[i] == "":
@@ -265,6 +261,9 @@ class Cache:
                 )
                 time.sleep(2)
 
+        self.check_mbid_album_cover_local()
+
+    def check_mbid_album_cover_local(self):
         entries_updated = 0
         for i in self.cache:
             if not " -- " in i:
@@ -278,7 +277,7 @@ class Cache:
 
         self.write_cache()
 
-        print(f"updated {entries_updated} entries")
-
-        print(f"list: {track_album_mbids}")
-        print(f"list: {track_album_covers}")
+        if entries_updated > 0:
+            utils.log(1, f"updated {entries_updated} entries")
+        else:
+            utils.log(1, "no tracks to update based on local album mbid found")
