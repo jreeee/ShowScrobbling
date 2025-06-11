@@ -22,11 +22,11 @@ try:
     from pypresence import ActivityType
 
     ACTIVITY_TYPE_SUPPORT = True
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     try:
         from lynxpresence import Presence
-        from lynxpresence import exceptions as ex
         from lynxpresence import ActivityType
+        import lynxpresence.exceptions as ex
 
         ACTIVITY_TYPE_SUPPORT = True
     except ModuleNotFoundError:
@@ -41,7 +41,7 @@ from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.8"
+VERSION = "1.9"
 
 # get and parse args
 args = parser.parse_args()
@@ -53,6 +53,8 @@ else:
     LFM_USR = const.USR
 if args.loglevel != 1:
     utils.GLOBAL_LOG_LEVEL = args.loglevel
+if args.strictness is None or len(args.strictness) == 0:
+    args.strictness = [5, 6, 7]
 
 # -----------------------------------------------------------
 
@@ -129,7 +131,6 @@ class Scrobbpy:
         # in case of new track
         if new_url != self.track.url:
             # update states
-            utils.log(3, args.request)
             self.rpc_state.update(args.request)
             # create new track object
             self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)
@@ -138,7 +139,9 @@ class Scrobbpy:
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
             # get remaining data from cache / requests
-            self.track = self.progcache.get_metadata(self.track, track_info_j, VERSION)
+            self.track = self.progcache.get_metadata(
+                self.track, track_info_j, VERSION, args.strictness
+            )
             if self.track.image == "fallback":
                 self.track.image = const.DEFAULT_TRACK_IMAGE
                 utils.log(3, f"using default track image {self.track.image}")
@@ -199,6 +202,10 @@ def main():
     """main method for ShowScrobbling"""
     try:
         if rpc := Scrobbpy(const.CLIENT_ID):
+            if args.check_cache:
+                rpc.progcache.check_cache(args.strictness, VERSION)
+                del rpc
+                sys.exit(0)
             while True:
                 try:
                     rpc.update()
