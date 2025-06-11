@@ -59,6 +59,22 @@ the **|**|:S:|**|** logo is inspired by music notation, in full it would techica
 ### caching
 showscrobbling uses caching to locally store track metadata. by default data is stored in `~/.cache/showscrobbling/metadata.json`. you can change this folder in the `constants.py` or using [arguments](#usage) to wherever you have r/w permissions. just make sure to add the tilde at the start for paths relative to your user or stick to absolute paths, otherwise python won't resolve the path correctly and the script won't work.
 
+you can use the arg `-C` to check the cache which will display info as to which cache file is used, and its size.
+furthermore it will then check based on name and artist if there exist duplicate entries and merge them.
+after that it will check if there are mbid based entries with album mbid that are missing covers.
+based on those it will query musicbrainz for the missing covers and add them.
+
+### strictness
+lastly, you also have the option to add a strictness values using `-S`.
+if a track misses data, it is added up like a bitmask and then compared to the strictness values.
+
+a missing cover correspods to 4, missing album to 2 and missing length to 1.
+so if you want to purge e.g. entries without cover and length would be strictness 5
+multiple ints can be provided, by default entries with values equal to 5, 6 and 7 are discarded.
+
+strictness applies both to normal operation, where it decides which entries are written to cache
+and also for checking cache, where you can specify what kinds of entries should be discarded.
+
 
 ### development
 
@@ -89,6 +105,7 @@ args | default | desc
 -c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/cache/metadata.json"`
 -E \| --enable-lfm-track-image | - | enable the use of the lfm track image. this is different from the lfm album image in that it is just a grey star sometimes ([see issue #15](https://github.com/jreeee/ShowScrobbling/issues/15)). because of that, showscrobbling elects to ignore this imagelink by default
 -C \| --check-cache | - | info about the cached songs
+-S \| --strictness | [5,6,7] \| int array determining the stricness for entries. usage: `-S 4 5` for tracks that have no image and no image and length
 
 ## similar projects
 - Gust4Oliveira's [Last.fm Discord Rich Presence](https://github.com/Gust4Oliveira/Last.fm-Discord-Rich-Presence)

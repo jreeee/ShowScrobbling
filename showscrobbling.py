@@ -53,6 +53,8 @@ else:
     LFM_USR = const.USR
 if args.loglevel != 1:
     utils.GLOBAL_LOG_LEVEL = args.loglevel
+if args.strictness is None or len(args.strictness) == 0:
+    args.strictness = [5, 6, 7]
 
 # -----------------------------------------------------------
 
@@ -137,7 +139,9 @@ class Scrobbpy:
             data_track_url = requests.track_info_url(recent_track_j)
             track_info_j = requests.get_json(data_track_url)
             # get remaining data from cache / requests
-            self.track = self.progcache.get_metadata(self.track, track_info_j, VERSION)
+            self.track = self.progcache.get_metadata(
+                self.track, track_info_j, VERSION, args.strictness
+            )
             if self.track.image == "fallback":
                 self.track.image = const.DEFAULT_TRACK_IMAGE
                 utils.log(3, f"using default track image {self.track.image}")
@@ -199,7 +203,7 @@ def main():
     try:
         if rpc := Scrobbpy(const.CLIENT_ID):
             if args.check_cache:
-                rpc.progcache.cache_info()
+                rpc.progcache.check_cache(args.strictness)
                 del rpc
                 sys.exit(0)
             while True:

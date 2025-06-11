@@ -98,7 +98,7 @@ full changelog: [v1.7...v1.8](https://github.com/jreeee/showscrobbling/compare/v
 cache:
 - better caching (not generating entries anymore that are missing two or more attributes)
 - check cache using `-C` arg to remove duplicates, empty entries, and search for missing info (might take a while bc of api limits)
-- for mbid based entries, the linked vgmdb page is used for covers as fallback
+- for mbid based entries, the linked vgmdb page is now used for covers as fallback
 - addition of link type entries that use the "song -- artist" key to link to mbid entries
 
 general:

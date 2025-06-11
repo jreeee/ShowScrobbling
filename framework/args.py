@@ -70,4 +70,11 @@ def parse_args():
         action="store_true",
         help="check entries in cache, tries to add missing info and removes empty objects",
     )
+    parser.add_argument(
+        "-S",
+        "--strictness",
+        nargs="*",
+        type=int,
+        help="set strictness value(s)\n1 - missing length\n2 - missing album\n4 - missing cover\nused like a bitmask, default 5 6 7",
+    )
     return parser.parse_args()
