@@ -111,7 +111,8 @@ def track_info_url(track_json):
 
 
 def req_mb_track(track, variant, ver) -> utils.Track:
-    """send a request to MusicBrainz to get the mbid of the track and get coverart"""
+    """send a request to MusicBrainz to get the mbid of the track and release/album"""
+
     track_mb_j = None
     rel_num = 0
     # track has mbid, album does not
@@ -145,12 +146,11 @@ def req_mb_track(track, variant, ver) -> utils.Track:
 
     return track
 
-    # album has mbid
-
 
 def req_album_cover(album_mbid, cover, ver):
-    if album_mbid != "" and cover in ("", "fallback"):
+    """get coverart based on mbids"""
 
+    if album_mbid != "" and cover in ("", "fallback"):
         cover_id = ""
         image = ""
         cover_arch_url = f"https://coverartarchive.org/release/{album_mbid}"

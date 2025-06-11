@@ -213,7 +213,7 @@ class Cache:
         # update cache
         self.write_cache()
 
-    def check_album_mbid_cover_qry(self):
+    def check_album_mbid_cover_qry(self, version):
         """check album mbids and add a cover"""
         track_album_mbids = []
 
@@ -244,9 +244,8 @@ class Cache:
         for i in range(0, len(track_album_mbids), 1):
             if track_album_covers[i] == "":
                 print(f"> getting cover for mbid item [{i+1}/{len(track_album_mbids)}]")
-                # TODO fix version
                 track_album_covers[i] = requests.req_album_cover(
-                    track_album_mbids[i], "", 1.9
+                    track_album_mbids[i], "", version
                 )
                 time.sleep(2)
 
@@ -279,7 +278,7 @@ class Cache:
         self.cache = updated_cache
         self.write_cache()
 
-    def check_cache(self, strictness=[5, 6, 7]):
+    def check_cache(self, strictness, version):
         """check and clean up cache"""
 
         self.cache_info()
@@ -300,7 +299,7 @@ class Cache:
  - base: {ent_base[4]}, mb: {ent_mb[4]}",
         )
 
-        self.check_album_mbid_cover_qry()
+        self.check_album_mbid_cover_qry(version)
         if num_strict_entries == 0:
             return
         a = input(

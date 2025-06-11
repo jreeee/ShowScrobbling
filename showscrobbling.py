@@ -203,7 +203,7 @@ def main():
     try:
         if rpc := Scrobbpy(const.CLIENT_ID):
             if args.check_cache:
-                rpc.progcache.check_cache(args.strictness)
+                rpc.progcache.check_cache(args.strictness, VERSION)
                 del rpc
                 sys.exit(0)
             while True:
