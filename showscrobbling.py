@@ -109,13 +109,14 @@ class Scrobbpy:
             win_bs = [
                 "powershell.exe",
                 "-Command",
-                "Get-CimInstance Win32_Process -Filter \"name = 'python.exe' OR name = 'py.exe'\" | "
+                "Get-CimInstance Win32_Process -Filter \"name = 'python.exe'\" | "
                 "Select-Object CommandLine,ProcessId | "
-                "Where-Object {$_.CommandLine -like '*showscrobbling.py'} | "
+                "Where-Object {$_.CommandLine -like '*showscrobbling.py*'} | "
                 "Select-Object -ExpandProperty ProcessId",
             ]
             ps = subprocess.run(win_bs, capture_output=True, text=True, shell=True)
             procs = ps.stdout.splitlines()
+            utils.log(3, ps)
             return len(procs) > 1
 
     def sleep(self):

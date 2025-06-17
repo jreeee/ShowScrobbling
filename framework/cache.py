@@ -17,15 +17,19 @@ class Cache:
     cache_fp = ""
 
     def __init__(self, cache_fp):
+        # assume fp points to metadata.json
         self.cache_fp = cache_fp
-        cache_dir = os.path.dirname(self.cache_fp)
-        if not os.path.exists(cache_dir):
-            os.mkdir(cache_dir)
-        if os.path.exists(self.cache_fp):
-            with open(self.cache_fp, "r", encoding="utf-8") as f:
-                self.cache = json.loads(f.read())
-        else:
+        # pointed to the dir in which metadata.json lies
+        if os.path.isdir(cache_fp):
+            self.cache_fp = os.path.join(cache_fp, "metadata.json")
+        # create dirs if not present
+        os.makedirs(os.path.dirname(self.cache_fp), exist_ok=True)
+        # write empty json if not present
+        if not os.path.exists(self.cache_fp):
             self.write_cache()
+        # open cache to read
+        with open(self.cache_fp, "r", encoding="utf-8") as f:
+            self.cache = json.loads(f.read())
 
     def write_cache(self):
         """dump data to file"""

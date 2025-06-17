@@ -102,10 +102,10 @@ args | default | desc
 -l \| --loglevel | 1 | program generated output, 0: silent -> 4: debug, default 1
 -i \| --image | [this](https://media.tenor.com/Hro804BGJaQAAAAj/miku-headbang.gif) | default image link if there's none for the track
 -r \| --request | 30 | interval in seconds to request the lastfm api for most recent track
--c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/cache/metadata.json"`
+-c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/.cache/metadata.json"`
 -E \| --enable-lfm-track-image | - | enable the use of the lfm track image. this is different from the lfm album image in that it is just a grey star sometimes ([see issue #15](https://github.com/jreeee/ShowScrobbling/issues/15)). because of that, showscrobbling elects to ignore this imagelink by default
 -C \| --check-cache | - | info about the cached songs
--S \| --strictness | [5,6,7] \| int array determining the stricness for entries. usage: `-S 4 5` for tracks that have no image and no image and length
+-S \| --strictness | [5,6,7] | int array determining the stricness for entries. usage: `-S 4 5` for tracks that have _no image_ and _no image and length_
 
 ## similar projects
 - Gust4Oliveira's [Last.fm Discord Rich Presence](https://github.com/Gust4Oliveira/Last.fm-Discord-Rich-Presence)
