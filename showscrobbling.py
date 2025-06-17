@@ -95,10 +95,28 @@ class Scrobbpy:
     def other_is_running(self):
         """check if another instance is already running"""
         pid = os.getpid()
-        return (
-            "python"
-            in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
-        )
+        utils.log(3, f"PID: {pid}")
+        # Unix like
+        if os.name != "nt":
+            return (
+                "python"
+                in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
+            )
+        # Windows
+        else:
+            import subprocess
+
+            win_bs = [
+                "powershell.exe",
+                "-Command",
+                "Get-CimInstance Win32_Process -Filter \"name = 'python.exe' OR name = 'py.exe'\" | "
+                "Select-Object CommandLine,ProcessId | "
+                "Where-Object {$_.CommandLine -like '*showscrobbling.py'} | "
+                "Select-Object -ExpandProperty ProcessId",
+            ]
+            ps = subprocess.run(win_bs, capture_output=True, text=True, shell=True)
+            procs = ps.stdout.splitlines()
+            return len(procs) > 1
 
     def sleep(self):
         """zzzzzzzzz"""
