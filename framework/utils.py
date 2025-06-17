@@ -99,7 +99,7 @@ class RpcState:
     start_time = 0
     new_track = sleeping = False
 
-    def update(self, interval):
+    def update(self, interval: int) -> None:
         """called for each new track"""
 
         # roughly the start time, +- args.request / 2 (15s)
