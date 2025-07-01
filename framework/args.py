@@ -75,6 +75,12 @@ def parse_args():
         "--strictness",
         nargs="*",
         type=int,
-        help="set strictness value(s)\n1 - missing length\n2 - missing album\n4 - missing cover\nused like a bitmask, default 5 6 7",
+        help="""\
+set strictness value(s)
+1 - missing length
+2 - missing album
+4 - missing cover
+used like a bitmask,
+default: 5 6 7""",
     )
     return parser.parse_args()

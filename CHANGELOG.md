@@ -95,14 +95,15 @@ full changelog: [v1.7...v1.8](https://github.com/jreeee/showscrobbling/compare/v
 
 > [v1.9](https://github.com/jreeee/ShowScrobbling/releases/tag/v1.9) [soon] - caching in v2
 
-cache:
-- better caching (not generating entries anymore that are missing two or more attributes)
-- check cache using `-C` arg to remove duplicates, empty entries, and search for missing info (might take a while bc of api limits)
-- for mbid based entries, the linked vgmdb page is now used for covers as fallback
-- addition of link type entries that use the "song -- artist" key to link to mbid entries
-
 general:
 - nicer looking readme
 - removed old & unused screenshots of showscro in the `media/` folder
+- instance already running now also works for windows
+
+cache:
+- better caching (not generating entries anymore that are missing two or more attributes)
+- check cache using `-C` arg to remove duplicates, empty entries, and search for missing info (might take a while bc of api limits)
+- for mbid based entries, the linked vgmdb page is now used for covers as fallback should all else fail
+- addition of link type entries that use the "song -- artist" key to link to mbid entries
 
 full changelog: [v1.8...v1.9](https://github.com/jreeee/showscrobbling/compare/v1.8...v1.9)

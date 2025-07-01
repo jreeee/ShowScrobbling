@@ -77,7 +77,6 @@ class Scrobbpy:
         self.rpc_connected = True
         self.rpc_state = utils.RpcState()
         utils.log(1, f"init finished, running version {VERSION}")
-        # TODO improve / expand to local paths
         fp = os.path.expanduser(args.cache_path)
         utils.log(3, f"cache file @ {fp}")
         self.progcache = cache.Cache(fp)
@@ -102,22 +101,22 @@ class Scrobbpy:
                 "python"
                 in os.popen(f"ps aux | grep showscrobbling.py | grep -v {pid}").read()
             )
-        # Windows
-        else:
-            import subprocess
 
-            win_bs = [
-                "powershell.exe",
-                "-Command",
-                "Get-CimInstance Win32_Process -Filter \"name = 'python.exe'\" | "
-                "Select-Object CommandLine,ProcessId | "
-                "Where-Object {$_.CommandLine -like '*showscrobbling.py*'} | "
-                "Select-Object -ExpandProperty ProcessId",
-            ]
-            ps = subprocess.run(win_bs, capture_output=True, text=True, shell=True)
-            procs = ps.stdout.splitlines()
-            utils.log(3, ps)
-            return len(procs) > 1
+        # Windows
+        import subprocess
+
+        win_bs = [
+            "powershell.exe",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"name = 'python.exe'\" | "
+            "Select-Object CommandLine,ProcessId | "
+            "Where-Object {$_.CommandLine -like '*showscrobbling.py*'} | "
+            "Select-Object -ExpandProperty ProcessId",
+        ]
+        ps = subprocess.run(win_bs, capture_output=True, text=True, shell=True)
+        procs = ps.stdout.splitlines()
+        utils.log(3, ps)
+        return len(procs) > 1
 
     def sleep(self):
         """zzzzzzzzz"""

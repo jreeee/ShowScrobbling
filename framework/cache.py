@@ -164,7 +164,8 @@ class Cache:
 
     def check_entries(self, ent_type, strictness) -> []:
         """
-        check how many entries are missing what. strictness is an int array, calculated by the following metric:
+        check how many entries are missing what. strictness is an int array,
+        calculated by the following metric:
         no cover +4, no album +2, no length +1
         so the lowest strictness is 7, where only tracks without any data are discarded.
         type is either 'base', 'mb' or 'link' which checks the different formats
@@ -307,7 +308,7 @@ class Cache:
         if num_strict_entries == 0:
             return
         a = input(
-            f"> do you want to remove {num_strict_entries} entries based on strictness {strictness}? [y/N]"
+            f"> remove {num_strict_entries} entries based on strictness {strictness}? [y/N]"
         )
         if a in ["Y", "y", "Yes", "yes"]:
             self.remove_garbage_entries(strictness)
