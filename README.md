@@ -42,7 +42,7 @@ if you encounter any other issues, feel free to let me know by opening a issue :
 
 ### startup
 
-after finishing the setup just start the program. it should automatically connect to your discord client and show which song you are currently listening to. it then updates every 30s to fetch the currently playing song from last.fm.
+after finishing the setup just start the program: open a terminal (emulator) of your choice and type `./showscrobbling.py`. for windows i recommend git bash, but cmd and powershell _should_ also work. it then automatically connects to your discord client and show which song you are  listening to right now. after that it updates every 30s to fetch the currently playing song from last.fm.
 
 ### general info
 
@@ -105,7 +105,7 @@ args | default | desc
 -c \| --cache-path | - | abolute path were showscrobbling reads data from and writes data to, e.g. `"~/git/showscrobbling/.cache/metadata.json"`
 -E \| --enable-lfm-track-image | - | enable the use of the lfm track image. this is different from the lfm album image in that it is just a grey star sometimes ([see issue #15](https://github.com/jreeee/ShowScrobbling/issues/15)). because of that, showscrobbling elects to ignore this imagelink by default
 -C \| --check-cache | - | info about the cached songs
--S \| --strictness | [5,6,7] | int array determining the stricness for entries. usage: `-S 4 5` for tracks that have _no image_ and _no image and length_
+-S \| --strictness | [5,6,7] | int array determining the stricness for entries. usage: `-S 4 5` for tracks that have _no image_ and _no image and length_, [details](#strictness)
 
 ## similar projects
 - Gust4Oliveira's [Last.fm Discord Rich Presence](https://github.com/Gust4Oliveira/Last.fm-Discord-Rich-Presence)

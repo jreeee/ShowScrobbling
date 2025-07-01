@@ -93,7 +93,7 @@ for pyprence to display the activitity as "Listening to" instead of "Playing" yo
 
 full changelog: [v1.7...v1.8](https://github.com/jreeee/showscrobbling/compare/v1.7...v1.8)
 
-> [v1.9](https://github.com/jreeee/ShowScrobbling/releases/tag/v1.9) [soon] - caching in v2
+> [v1.9](https://github.com/jreeee/ShowScrobbling/releases/tag/v1.9) [25-07-01] - Quality of Life improvements & a bit more
 
 general:
 - nicer looking readme
