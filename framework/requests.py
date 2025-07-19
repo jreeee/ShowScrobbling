@@ -4,6 +4,7 @@ functions related to API queries
 
 import urllib.request
 from urllib.error import HTTPError
+from urllib.parse import quote
 import json
 
 from framework import utils
@@ -100,9 +101,9 @@ def get_vgmdb_json(form, mbid, version):
 
 def track_info_url(track_json):
     """create the lastfm track info url using the recent track"""
-    track_url_split = track_json["recenttracks"]["track"][0]["url"].split("/")
-    url_artist = track_url_split[4]
-    url_track = track_url_split[6]
+    track = track_json["recenttracks"]["track"][0]
+    url_track = quote(track["name"], safe="")
+    url_artist = quote(track["artist"]["#text"], safe="")
     info_url = (
         f"{const.URL_TRACK_INFO}&track={url_track}&artist={url_artist}&format=json"
     )
