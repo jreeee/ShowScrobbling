@@ -7,7 +7,7 @@ import json
 import time
 
 from framework import utils
-from framework import requests
+from framework import apirqs
 
 
 class Cache:
@@ -69,7 +69,7 @@ class Cache:
         if key not in self.cache.keys() or self.cache[key]["cover"] == "fallback":
             utils.log(2, "not found in cache")
             if track.image in ("", "fallback"):
-                new_track = requests.get_cover_image(track, track_info_j, ver)
+                new_track = apirqs.get_cover_image(track, track_info_j, ver)
                 track = new_track
                 utils.log(2, "got track info")
 
@@ -249,7 +249,7 @@ class Cache:
         for i in range(0, len(track_album_mbids), 1):
             if track_album_covers[i] == "":
                 print(f"> getting cover for mbid item [{i+1}/{len(track_album_mbids)}]")
-                track_album_covers[i] = requests.req_album_cover(
+                track_album_covers[i] = apirqs.req_album_cover(
                     track_album_mbids[i], "", version
                 )
                 time.sleep(2)

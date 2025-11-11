@@ -1,5 +1,5 @@
 # **|**|:S:|**|** - ShowScrobbling
-<img src="media/shoscro-logo-square.png" width="28px" /> ![Version Badge](https://img.shields.io/badge/VERSION-1.9-white?style=for-the-badge)
+<img src="media/shoscro-logo-square.png" width="28px" /> ![Version Badge](https://img.shields.io/badge/VERSION-1.10-white?style=for-the-badge)
 [![pypresence](https://img.shields.io/badge/using-pypresence-00bb88.svg?style=for-the-badge&logo=discord&logoWidth=20)](https://github.com/qwertyquerty/pypresence)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -84,12 +84,9 @@ for linting and formatting the code, the `setup.py` provides a prompt to create 
 
 - python 3.9 or newer
 - urllib $^{1}$
-- pypresence $^{1,2}$
-- (lynxpresence $^{2}$)
+- pypresence $^{1}$
 
 $^{1}$ also present in the `requirements.txt`
-
-$^{2}$ to show _listening_ instead of _playing_ in discord you'll need the [git version](https://github.com/qwertyquerty/) of pypresence or [lynxpresence](https://github.com/C0rn3j/lynxpresence), an updated fork of pypresence. as this is more of a temporary measure until pypresence gets a new release out, i have not put it into the requirements (yet).
 
 (also discord, your lastfm username and a working internet connection)
 

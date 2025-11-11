@@ -16,13 +16,18 @@ import traceback
 
 
 # check pypresence ActivityType support
+STATUS_DISPLAY_DETAILS = False
 try:
     from pypresence import Presence
     from pypresence import exceptions as ex
     from pypresence import ActivityType
 
     ACTIVITY_TYPE_SUPPORT = True
+    from pypresence import StatusDisplayType
+
+    STATUS_DISPLAY_DETAILS = True
 except (ImportError, ModuleNotFoundError):
+    # now legacy imports
     try:
         from lynxpresence import Presence
         from lynxpresence import ActivityType
@@ -36,12 +41,12 @@ except (ImportError, ModuleNotFoundError):
 from framework import args as parser
 from framework import constants as const
 from framework import utils
-from framework import requests
+from framework import apirqs
 from framework import cache
 
 # -----------------------------------------------------------
 
-VERSION = "1.9"
+VERSION = "1.10"
 
 # get and parse args
 args = parser.parse_args()
@@ -131,7 +136,7 @@ class Scrobbpy:
         """called every interval to check the current status"""
 
         # query lastfm for the most recent track
-        recent_track_j = requests.get_json(const.URL_RECENT_TRACK)
+        recent_track_j = apirqs.get_json(const.URL_RECENT_TRACK)
 
         # get recent track info
         playing = recent_track_j["recenttracks"]["track"][0].get("@attr", {})
@@ -154,8 +159,8 @@ class Scrobbpy:
             self.track = utils.Track(recent_track_j, args.enable_lfm_track_img)
             self.track.url = new_url
             # query lfm for track info
-            data_track_url = requests.track_info_url(recent_track_j)
-            track_info_j = requests.get_json(data_track_url)
+            data_track_url = apirqs.track_info_url(recent_track_j)
+            track_info_j = apirqs.get_json(data_track_url)
             # get remaining data from cache / requests
             self.track = self.progcache.get_metadata(
                 self.track, track_info_j, VERSION, args.strictness
@@ -200,8 +205,16 @@ class Scrobbpy:
 
         self.rpc.clear()
         try:
-            if ACTIVITY_TYPE_SUPPORT:
+            if ACTIVITY_TYPE_SUPPORT and STATUS_DISPLAY_DETAILS:
+                self.rpc.update(
+                    activity_type=ActivityType.LISTENING,
+                    status_display_type=StatusDisplayType.DETAILS,
+                    **update_args,
+                )
+            # legacy, keep lynxpresence compatability
+            elif ACTIVITY_TYPE_SUPPORT:
                 self.rpc.update(activity_type=ActivityType.LISTENING, **update_args)
+            # legacy pypresence
             else:
                 self.rpc.update(**update_args)
             info = f"▶️ {self.track.name}, {self.track.artist}, {self.track.listens}"
@@ -228,8 +241,8 @@ def main():
                 try:
                     rpc.update()
                 except Exception as e:
-                    utils.log(1, str(e) + " occurred in " + traceback.format_exc())
-                    utils.log(1, f"trying again in {args.request}s")
+                    utils.log(2, str(e) + " occurred in " + traceback.format_exc())
+                    utils.log(1, f"Error occurred, trying again in {args.request}s")
                 time.sleep(args.request)
     except ConnectionRefusedError:
         utils.log(1, "connection refused - is discord running?")
