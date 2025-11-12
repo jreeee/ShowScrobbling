@@ -123,7 +123,7 @@ def req_mb_track(track, variant, ver) -> utils.Track:
         if track_mb_j == "":
             return track
         # check for release with matching name
-        if track.album != "":
+        if track.album != "" and len(track_mb_j["recordings"][0]["releases"]) > 1:
             for i in track_mb_j["recordings"][0]["releases"]:
                 if i["title"] == track.album:
                     track.album_mbid = i["id"]
@@ -134,23 +134,21 @@ def req_mb_track(track, variant, ver) -> utils.Track:
             track.album = track_mb_j["recordings"][0]["releases"][0]["title"]
             track.album_mbid = track_mb_j["recordings"][0]["releases"][0]["id"]
             rel_num = 0
-        if track.length == 0:
+        if (
+            track.length == 0
+            and track_mb_j["recordings"][rel_num].get("length") is not None
+        ):
             track.lenth = int(track_mb_j["recordings"][rel_num]["length"])
 
         utils.log(
             3,
             "release mbid:" + str(track.album_mbid) + ", length: " + str(track.length),
         )
-
-        if track.image == "" and track.album_mbid != "":
-            track.image = get_vgmdb_json("release", track.album_mbid, ver)
-
     return track
 
 
 def req_album_cover(album_mbid, cover, ver):
     """get coverart based on mbids"""
-
     if album_mbid != "" and cover in ("", "fallback"):
         cover_id = ""
         image = ""
@@ -161,7 +159,7 @@ def req_album_cover(album_mbid, cover, ver):
             cover_j = get_json(cover_arch_url)
             if cover_j != "":
                 return cover_j["images"][0]["thumbnails"]["large"]
-        except HTTPError:
+        except (HTTPError, KeyError):
             utils.log(2, "no default release img, using release groups")
         track_list = get_mb_json("reid", album_mbid, ver)
         if track_list != "":
@@ -198,7 +196,7 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
             updatedtrack.album_mbid, updatedtrack.image, ver
         )
         updatedtrack.img_link_nr = 3
-    except IndexError:
+    except (IndexError, HTTPError):
         utils.log(3, "musicbrainz tid query failed")
         try:
             updatedtrack = req_mb_track(track, "rid", ver)
@@ -206,7 +204,7 @@ def get_cover_image(track: utils.Track, track_info_j, ver) -> utils.Track:
                 updatedtrack.album_mbid, updatedtrack.image, ver
             )
             updatedtrack.img_link_nr = 4
-        except IndexError:
+        except (IndexError, HTTPError):
             utils.log(3, "musicbrainz rid query failed")
             utils.log(2, "musicbrainz query failed")
 
